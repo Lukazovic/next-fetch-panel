@@ -1,6 +1,6 @@
 {
   "name": "next-fetch-panel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Real-time server-side fetch inspector panel for Next.js App Router",
   "keywords": [
     "nextjs",
