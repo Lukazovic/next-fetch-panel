@@ -1,0 +1,72 @@
+{
+  "name": "next-fetch-panel",
+  "version": "0.1.0",
+  "description": "Real-time server-side fetch inspector panel for Next.js App Router",
+  "keywords": [
+    "nextjs",
+    "devtools",
+    "fetch",
+    "inspector",
+    "panel",
+    "server-components",
+    "ssr",
+    "debugging"
+  ],
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./patch": {
+      "import": "./dist/patch.mjs",
+      "require": "./dist/patch.js",
+      "types": "./dist/patch.d.ts"
+    },
+    "./middleware": {
+      "import": "./dist/middleware.mjs",
+      "require": "./dist/middleware.js",
+      "types": "./dist/middleware.d.ts"
+    },
+    "./route": {
+      "import": "./dist/route.mjs",
+      "require": "./dist/route.js",
+      "types": "./dist/route.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "next": ">=15.0.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0",
+    "tailwindcss": ">=4.0.0"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.0.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^1.0.0",
+    "react-resizable-panels": "^4.0.0",
+    "tailwind-merge": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
