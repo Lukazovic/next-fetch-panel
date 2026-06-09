@@ -1,3 +1,5 @@
 node_modules/
 dist/
 *.tsbuildinfo
+src/panel.styles.ts
+src/panel.styles.tmp.css

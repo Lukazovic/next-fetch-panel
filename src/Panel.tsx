@@ -1,6 +1,8 @@
 "use client";
 
+import panelStyles from "./panel.styles";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
 import { Settings2Icon, XIcon } from "lucide-react";
 import { cn } from "./utils";
@@ -528,11 +530,19 @@ function Panel() {
   const [selected, setSelected] = useState<LogEntry | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
-
   const { config, update } = usePanelConfig();
   const theme = useEffectiveTheme(config.colorScheme);
-  const isDark = mounted && theme === "dark";
+  const isDark = theme === "dark";
+
+  useEffect(() => {
+    const id = "next-fetch-panel-styles";
+    if (!document.getElementById(id)) {
+      const style = document.createElement("style");
+      style.id = id;
+      style.textContent = panelStyles;
+      document.head.appendChild(style);
+    }
+  }, []);
 
   useEffect(() => {
     const es = new EventSource("/api/dev-network");
@@ -560,8 +570,6 @@ function Panel() {
     detailSize: config.detailSize,
     onDetailSizeChange: (size: number) => update({ detailSize: size }),
   };
-
-  if (!mounted) return null;
 
   const isHorizontal = config.sheetSide === "bottom" || config.sheetSide === "top";
   const sheetSize = isHorizontal
@@ -628,5 +636,7 @@ function Panel() {
 }
 
 export default function DevNetworkPanel() {
-  return <Panel />;
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+  if (!mounted) return null;
+  return createPortal(<Panel />, document.body);
 }

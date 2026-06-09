@@ -1,0 +1,82 @@
+@import "tailwindcss/theme" source(none);
+@import "tailwindcss/utilities";
+
+/*
+  Map Tailwind semantic color utilities to CSS variables.
+  Uses consumer's shadcn variables when available, with sensible fallbacks
+  so the panel works even without shadcn installed.
+*/
+:root {
+  --nfp-background: var(--background, #ffffff);
+  --nfp-foreground: var(--foreground, #09090b);
+  --nfp-border: var(--border, #e4e4e7);
+  --nfp-muted: var(--muted, #f4f4f5);
+  --nfp-muted-foreground: var(--muted-foreground, #71717a);
+  --nfp-secondary: var(--secondary, #f4f4f5);
+  --nfp-secondary-foreground: var(--secondary-foreground, #18181b);
+  --nfp-primary: var(--primary, #18181b);
+  --nfp-primary-foreground: var(--primary-foreground, #fafafa);
+  --nfp-accent: var(--accent, #f4f4f5);
+  --nfp-accent-foreground: var(--accent-foreground, #18181b);
+  --nfp-ring: var(--ring, #a1a1aa);
+  --nfp-card: var(--card, #ffffff);
+  --nfp-card-foreground: var(--card-foreground, #09090b);
+  --nfp-destructive: var(--destructive, #ef4444);
+}
+
+/* Dark mode via .dark class on an ancestor (JS-controlled, e.g. panel settings) */
+.dark {
+  --nfp-background: var(--background, #09090b);
+  --nfp-foreground: var(--foreground, #fafafa);
+  --nfp-border: var(--border, #27272a);
+  --nfp-muted: var(--muted, #27272a);
+  --nfp-muted-foreground: var(--muted-foreground, #a1a1aa);
+  --nfp-secondary: var(--secondary, #27272a);
+  --nfp-secondary-foreground: var(--secondary-foreground, #fafafa);
+  --nfp-primary: var(--primary, #fafafa);
+  --nfp-primary-foreground: var(--primary-foreground, #18181b);
+  --nfp-accent: var(--accent, #27272a);
+  --nfp-accent-foreground: var(--accent-foreground, #fafafa);
+  --nfp-ring: var(--ring, #d4d4d8);
+  --nfp-card: var(--card, #09090b);
+  --nfp-card-foreground: var(--card-foreground, #fafafa);
+  --nfp-destructive: var(--destructive, #f87171);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --nfp-background: var(--background, #09090b);
+    --nfp-foreground: var(--foreground, #fafafa);
+    --nfp-border: var(--border, #27272a);
+    --nfp-muted: var(--muted, #27272a);
+    --nfp-muted-foreground: var(--muted-foreground, #a1a1aa);
+    --nfp-secondary: var(--secondary, #27272a);
+    --nfp-secondary-foreground: var(--secondary-foreground, #fafafa);
+    --nfp-primary: var(--primary, #fafafa);
+    --nfp-primary-foreground: var(--primary-foreground, #18181b);
+    --nfp-accent: var(--accent, #27272a);
+    --nfp-accent-foreground: var(--accent-foreground, #fafafa);
+    --nfp-ring: var(--ring, #d4d4d8);
+    --nfp-card: var(--card, #09090b);
+    --nfp-card-foreground: var(--card-foreground, #fafafa);
+    --nfp-destructive: var(--destructive, #f87171);
+  }
+}
+
+@theme inline {
+  --color-background: var(--nfp-background);
+  --color-foreground: var(--nfp-foreground);
+  --color-border: var(--nfp-border);
+  --color-muted: var(--nfp-muted);
+  --color-muted-foreground: var(--nfp-muted-foreground);
+  --color-secondary: var(--nfp-secondary);
+  --color-secondary-foreground: var(--nfp-secondary-foreground);
+  --color-primary: var(--nfp-primary);
+  --color-primary-foreground: var(--nfp-primary-foreground);
+  --color-accent: var(--nfp-accent);
+  --color-accent-foreground: var(--nfp-accent-foreground);
+  --color-ring: var(--nfp-ring);
+  --color-card: var(--nfp-card);
+  --color-card-foreground: var(--nfp-card-foreground);
+  --color-destructive: var(--nfp-destructive);
+}
