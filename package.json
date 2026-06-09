@@ -19,24 +19,24 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     },
     "./patch": {
+      "types": "./dist/patch.d.ts",
       "import": "./dist/patch.mjs",
-      "require": "./dist/patch.js",
-      "types": "./dist/patch.d.ts"
+      "require": "./dist/patch.js"
     },
     "./middleware": {
+      "types": "./dist/middleware.d.ts",
       "import": "./dist/middleware.mjs",
-      "require": "./dist/middleware.js",
-      "types": "./dist/middleware.d.ts"
+      "require": "./dist/middleware.js"
     },
     "./route": {
+      "types": "./dist/route.d.ts",
       "import": "./dist/route.mjs",
-      "require": "./dist/route.js",
-      "types": "./dist/route.d.ts"
+      "require": "./dist/route.js"
     }
   },
   "files": [
