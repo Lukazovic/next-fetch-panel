@@ -262,7 +262,7 @@ Opens to the right of the table inside a `ResizablePanelGroup`. The split is use
 
 - **Server Network** label + request count
 - **Settings** gear icon — opens the settings dialog
-- **Clear** button — clears all entries and closes the detail pane
+- **Clear** button — clears all entries, closes the detail pane, and persists a `clearedAt` timestamp to `localStorage` so cleared entries don't reappear after a page refresh
 - **×** close button — closes the panel, shows the toggle button
 
 ---
@@ -316,6 +316,14 @@ Next.js expects `instrumentation.ts` at the root of the project, or inside `src/
 ### Why buffer replay on SSE connect?
 
 SSR fetches execute during the request lifecycle, often completing before the browser has opened the `EventSource` connection. The 100-entry buffer captures these pre-connect entries and replays them as the first frames on every new SSE connection.
+
+### Why Clear uses a `localStorage` timestamp instead of clearing the server buffer
+
+A naive "clear" would only wipe the client-side React state. On the next page refresh, the SSE endpoint replays the server buffer for the session, and all the cleared entries reappear.
+
+Clearing the server buffer is not an option either — the buffer is a shared singleton. Removing entries for one session would affect other users connected to the same server (relevant in staging environments with multiple concurrent users).
+
+The solution: on clear, `Date.now()` is written to `localStorage` under `next-fetch-panel-cleared-at`. On mount, the panel reads this value into a ref. Every SSE message — including replayed ones — is filtered against it: entries with `ts <= clearedAt` are discarded before reaching React state. The server buffer is never touched, so other users are unaffected.
 
 ### Why `response.clone().text().then(...)` instead of `await response.text()`?
 

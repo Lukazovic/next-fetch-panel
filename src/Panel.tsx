@@ -392,13 +392,13 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
 }
 
 function PanelInner({
-  entries, selected, setSelected, setEntries, onOpenSettings, onClose, bottomRef,
+  entries, selected, setSelected, onClear, onOpenSettings, onClose, bottomRef,
   detailSize, onDetailSizeChange,
 }: {
   entries: LogEntry[];
   selected: LogEntry | null;
   setSelected: (e: LogEntry | null) => void;
-  setEntries: (e: LogEntry[]) => void;
+  onClear: () => void;
   onOpenSettings: () => void;
   onClose: () => void;
   bottomRef: React.RefObject<HTMLDivElement | null>;
@@ -436,7 +436,7 @@ function PanelInner({
           <Button variant="ghost" size="icon-xs" className="text-muted-foreground" onClick={onOpenSettings}>
             <Settings2Icon />
           </Button>
-          <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => { setEntries([]); setSelected(null); }}>
+          <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={onClear}>
             Clear
           </Button>
           <Button variant="ghost" size="icon-xs" className="text-muted-foreground ml-1" onClick={onClose}>
@@ -524,12 +524,15 @@ function PanelInner({
   );
 }
 
+const CLEARED_AT_KEY = "next-fetch-panel-cleared-at";
+
 function Panel() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<LogEntry | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const clearedAtRef = useRef<number>(Number(localStorage.getItem(CLEARED_AT_KEY)) || 0);
   const { config, update } = usePanelConfig();
   const theme = useEffectiveTheme(config.colorScheme);
   const isDark = theme === "dark";
@@ -549,6 +552,7 @@ function Panel() {
     es.onmessage = (event) => {
       try {
         const entry: LogEntry = JSON.parse(event.data);
+        if (entry.ts <= clearedAtRef.current) return;
         setEntries((prev) => {
           const next = [...prev, entry];
           return next.length > MAX_ENTRIES ? next.slice(-MAX_ENTRIES) : next;
@@ -558,12 +562,20 @@ function Panel() {
     return () => es.close();
   }, []);
 
+  function handleClear() {
+    const ts = Date.now();
+    clearedAtRef.current = ts;
+    localStorage.setItem(CLEARED_AT_KEY, String(ts));
+    setEntries([]);
+    setSelected(null);
+  }
+
   useEffect(() => {
     if (open && !selected) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [entries, open, selected]);
 
   const innerProps = {
-    entries, selected, setSelected, setEntries,
+    entries, selected, setSelected, onClear: handleClear,
     onOpenSettings: () => setSettingsOpen(true),
     onClose: () => setOpen(false),
     bottomRef,
