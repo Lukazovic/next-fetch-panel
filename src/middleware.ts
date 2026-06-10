@@ -11,24 +11,25 @@ type MiddlewareResult =
 /**
  * Wraps your existing middleware with the dev panel session logic.
  *
- * Simple (no other middleware):
+ * Returns the middleware function directly — use it however fits your project:
+ *
+ * Direct export (use the function as-is):
+ *   export const middleware = withDevPanel()
+ *   export const config = { matcher: ["..."] }
+ *
+ * Destructured (when you want the built-in default matcher):
  *   export const { middleware, config } = withDevPanel()
  *
  * With your own logic:
- *   export const { middleware, config } = withDevPanel(async (request) => {
+ *   export const middleware = withDevPanel(async (request) => {
  *     if (!isAuthenticated(request))
  *       return NextResponse.redirect(new URL("/login", request.url))
  *     // return nothing to let the request continue normally
  *   })
  *
- * Custom matcher:
- *   export const { middleware, config } = withDevPanel(handler, {
- *     matcher: ["/api/:path*", "/((?!_next).*)"],
- *   })
- *
  * If your project's NextRequest type conflicts with this lib's Next.js version,
  * pass it as a type parameter — TypeScript infers the handler's request type:
- *   export const { middleware, config } = withDevPanel<NextRequest>(async (req) => { ... })
+ *   export const middleware = withDevPanel<NextRequest>(async (req) => { ... })
  */
 export function withDevPanel<TRequest = NextRequest>(
   handler?: (request: TRequest) => MiddlewareResult,
@@ -68,12 +69,14 @@ export function withDevPanel<TRequest = NextRequest>(
     return response;
   }
 
-  return {
-    middleware,
-    config: {
-      matcher: options?.matcher ?? ["/((?!_next/static|_next/image|favicon.ico).*)"],
-    },
+  const config = {
+    matcher: options?.matcher ?? ["/((?!_next/static|_next/image|favicon.ico).*)"],
   };
+
+  // Attach middleware and config as properties so both usage patterns work:
+  //   export const proxy = withDevPanel(handler)          // direct function
+  //   export const { middleware, config } = withDevPanel() // destructured
+  return Object.assign(middleware, { middleware, config });
 }
 
 // Default export for the simple plug-and-play case used by the root middleware.ts.

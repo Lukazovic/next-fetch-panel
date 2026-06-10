@@ -148,6 +148,27 @@ Every browser session gets a unique ID (`__dev_sid` cookie, generated on first v
 
 The result: each browser sees only the server-side fetches it triggered, even in a multi-user staging environment.
 
+#### `withDevPanel` return value
+
+`withDevPanel` returns the middleware function directly, with `middleware` and `config` attached as properties. This supports both usage patterns without a breaking change:
+
+```ts
+// Destructured — convenient when you want the built-in default matcher
+export const { middleware, config } = withDevPanel(handler)
+
+// Direct — when you define config separately (e.g. complex custom matcher)
+export const middleware = withDevPanel(handler)
+export const config = { matcher: ["..."] }
+```
+
+In Next.js 16+, the file was renamed from `middleware.ts` to `proxy.ts` and the export from `middleware` to `proxy`. The function works identically — just match the export name to what your Next.js version expects:
+
+```ts
+// proxy.ts (Next.js 16+)
+export const proxy = withDevPanel(handler)
+export const config = { matcher: ["..."] }
+```
+
 ### 5. Axios Support (`src/interceptor.ts`)
 
 By default, axios in Node.js uses the `http`/`https` modules and bypasses `globalThis.fetch` entirely. Even when configured with `adapter: 'fetch'`, axios caches the original fetch reference at import time — before `instrumentation.ts` has had a chance to patch it — so axios calls still won't appear in the panel.

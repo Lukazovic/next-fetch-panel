@@ -52,28 +52,45 @@ export async function register() {
 
 ---
 
-### 2. `middleware.ts` — session isolation
+### 2. `middleware.ts` / `proxy.ts` — session isolation
 
-**Simple** — no other middleware:
+> **Next.js 16+** renamed this file from `middleware.ts` to `proxy.ts` and the export from `middleware` to `proxy`. Both versions work the same way — match the file name and export name to your Next.js version.
+
+**Simple** — no other middleware (Next.js ≤ 15):
 
 ```ts
 // middleware.ts
 export { middleware, config } from "next-fetch-panel/middleware";
 ```
 
-**Composable** — you already have middleware:
+**Simple** — Next.js 16+:
 
 ```ts
-// middleware.ts
+// proxy.ts
 import { withDevPanel } from "next-fetch-panel/middleware";
 
-export const { middleware, config } = withDevPanel(async (request) => {
-  if (!request.cookies.has("auth-token"))
-    return NextResponse.redirect(new URL("/login", request.url));
-});
+export const proxy = withDevPanel();
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };
 ```
 
-`withDevPanel` always handles the `NextResponse.next()` call internally — you only need to return a response when you want to block or redirect.
+**Composable** — you already have your own logic:
+
+```ts
+// proxy.ts (Next.js 16+) or middleware.ts (Next.js ≤ 15)
+import { withDevPanel } from "next-fetch-panel/middleware";
+
+export const proxy = withDevPanel(async (request) => {
+  if (!request.cookies.has("auth-token"))
+    return NextResponse.redirect(new URL("/login", request.url));
+  // return nothing to let the request continue normally
+});
+
+export const config = {
+  matcher: ["/(ca|us)/:path*", "/((?!api|_next|.*\\..*).*)"],
+};
+```
+
+`withDevPanel` handles `NextResponse.next()` internally — only return a response when you want to block or redirect. The function itself is the middleware handler, so you can export it directly as `proxy`, `middleware`, or any name your project uses.
 
 ---
 
