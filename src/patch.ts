@@ -59,13 +59,23 @@ export async function registerDevPanel() {
     input: RequestInfo | URL,
     init?: RequestInit
   ): Promise<Response> {
-    const method = (init?.method ?? "GET").toUpperCase();
     const url =
       typeof input === "string"
         ? input
         : input instanceof URL
         ? input.href
         : input.url;
+
+    // Skip Next.js / React internal fetches to avoid interfering with RSC and error overlays.
+    if (
+      url.includes("/__nextjs") ||
+      url.includes("/_next/") ||
+      url.includes("/api/dev-network")
+    ) {
+      return originalFetch(input, init);
+    }
+
+    const method = (init?.method ?? "GET").toUpperCase();
     const ts = Date.now();
     const id = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
     const requestHeaders = headersToObject(init?.headers);
