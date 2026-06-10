@@ -200,12 +200,12 @@ A `"use client"` component rendered unconditionally inside `RootLayout`. On moun
 
 ## Redacting Secrets
 
-Redaction happens in `src/patch.ts` immediately after a response is received — the raw value is never written to the store or sent to the browser.
+Redaction happens in `src/patch.ts` and `src/interceptor.ts` immediately after a response is received — the raw value is never written to the store or sent to the browser.
 
-### Configuration (`src/redact.ts`)
+### Default patterns (`src/redact.ts`)
 
 ```ts
-export const redactConfig = {
+export const defaultRedactConfig: RedactConfig = {
   urlParams: ["api_key", "apikey", "secret", "token", "access_token", "password", "key"],
   headers:   ["authorization", "x-api-key", "x-secret", "x-auth-token"],
   bodyKeys:  ["password", "secret", "token", "api_key", "apiKey", "accessToken", "access_token"],
@@ -219,7 +219,52 @@ Matching is:
 
 Matched values are replaced with `[REDACTED]`. The actual HTTP request is never modified — only the copy stored for display.
 
-To extend redaction beyond these three categories (e.g., a bearer token at a nested JSON path), add a custom transform directly in `redactEntry()` in `src/redact.ts`.
+### Customizing redaction
+
+Pass a `redact` option to `registerDevPanel` and/or `createDevPanelAxiosInterceptors`:
+
+```ts
+type RedactInput =
+  | Partial<RedactConfig>                                   // plain object — replaces each provided category
+  | ((defaults: RedactConfig) => Partial<RedactConfig>);   // function — full control
+```
+
+**Extend** — keep defaults, add your own keys:
+```ts
+await registerDevPanel({
+  redact: (defaults) => ({
+    ...defaults,
+    urlParams: [...defaults.urlParams, "shop_token"],
+    bodyKeys:  [...defaults.bodyKeys,  "refreshToken"],
+  }),
+});
+```
+
+**Override a category** — replace the default list entirely:
+```ts
+await registerDevPanel({
+  redact: { headers: ["x-my-secret"] },
+});
+```
+
+**Disable a category** — pass an empty array:
+```ts
+await registerDevPanel({
+  redact: { headers: [] },
+});
+```
+
+**Remove one entry from defaults**:
+```ts
+await registerDevPanel({
+  redact: (d) => ({
+    ...d,
+    headers: d.headers.filter((h) => h !== "authorization"),
+  }),
+});
+```
+
+Both `registerDevPanel` and `createDevPanelAxiosInterceptors` accept the same `redact` option independently, so you can configure them differently if needed.
 
 ---
 

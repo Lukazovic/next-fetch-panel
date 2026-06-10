@@ -1,3 +1,5 @@
+import type { RedactInput } from "./redact";
+
 const BODY_LIMIT = 50_000;
 
 function headersToObject(headers: HeadersInit | undefined): Record<string, string> {
@@ -52,12 +54,24 @@ async function getSessionId(): Promise<string | null> {
  * patch runs (e.g. with adapter: 'fetch'), use createDevPanelAxiosInterceptors()
  * from "next-fetch-panel/interceptor" instead. No adapter change is required —
  * the interceptors work with any axios adapter.
+ *
+ * Redaction options:
+ *   // extend defaults — add keys on top of the built-in list
+ *   await registerDevPanel({ redact: (d) => ({ ...d, urlParams: [...d.urlParams, "my_key"] }) })
+ *
+ *   // override a category entirely
+ *   await registerDevPanel({ redact: { headers: ["x-my-secret"] } })
+ *
+ *   // disable a category
+ *   await registerDevPanel({ redact: { headers: [] } })
  */
-export async function registerDevPanel() {
+export async function registerDevPanel(options?: { redact?: RedactInput }) {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
   const { devLogStore } = await import("./store");
-  const { redactEntry } = await import("./redact");
+  const { redactEntry, resolveRedactConfig } = await import("./redact");
+
+  const redactConfig = resolveRedactConfig(options?.redact);
 
   const originalFetch = globalThis.fetch;
 
@@ -106,14 +120,14 @@ export async function registerDevPanel() {
           requestHeaders, responseHeaders,
           requestBody, responseBody: text.slice(0, BODY_LIMIT),
           sessionId,
-        })),
+        }, redactConfig)),
         () => devLogStore.push(redactEntry({
           id, url, method, ts, duration, error: undefined,
           status: response.status, statusText: response.statusText,
           requestHeaders, responseHeaders,
           requestBody, responseBody: null,
           sessionId,
-        })),
+        }, redactConfig)),
       );
 
       return response;
@@ -126,7 +140,7 @@ export async function registerDevPanel() {
         requestHeaders, responseHeaders: {},
         requestBody, responseBody: null,
         sessionId,
-      }));
+      }, redactConfig));
       throw err;
     }
   };

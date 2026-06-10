@@ -143,11 +143,36 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ## Redacting secrets
 
-Edit `redact.ts` configuration patterns. By default, the panel redacts:
+By default, the panel redacts:
 
 - URL params: `api_key`, `apikey`, `secret`, `token`, `access_token`, `password`, `key`
 - Headers: `authorization`, `x-api-key`, `x-secret`, `x-auth-token`
 - JSON body keys: `password`, `secret`, `token`, `api_key`, `apiKey`, `accessToken`, `access_token`
+
+Pass a `redact` option to `registerDevPanel` and/or `createDevPanelAxiosInterceptors` to customize:
+
+```ts
+// extend defaults — keep existing patterns, add your own
+await registerDevPanel({
+  redact: (defaults) => ({
+    ...defaults,
+    urlParams: [...defaults.urlParams, "shop_token"],
+    bodyKeys:  [...defaults.bodyKeys,  "refreshToken"],
+  }),
+});
+
+// override a category entirely — only these values will be redacted
+await registerDevPanel({
+  redact: { headers: ["x-my-secret"] },
+});
+
+// disable a category — show everything
+await registerDevPanel({
+  redact: { headers: [] },
+});
+```
+
+The same `redact` option is available on `createDevPanelAxiosInterceptors({ redact: ... })`.
 
 The actual HTTP request is never modified — only the copy kept for display.
 

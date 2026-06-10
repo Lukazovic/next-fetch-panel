@@ -1,5 +1,5 @@
 import { devLogStore } from "./store";
-import { redactEntry } from "./redact";
+import { redactEntry, resolveRedactConfig, type RedactInput } from "./redact";
 
 const BODY_LIMIT = 50_000;
 
@@ -25,19 +25,22 @@ function flattenHeaders(headers: unknown): Record<string, string> {
   return result;
 }
 
-async function push(entry: {
-  url: string;
-  method: string;
-  ts: number;
-  duration: number;
-  status: number | null;
-  statusText?: string | null;
-  error?: string;
-  requestHeaders?: Record<string, string>;
-  responseHeaders?: Record<string, string>;
-  requestBody?: string | null;
-  responseBody?: string | null;
-}) {
+async function push(
+  entry: {
+    url: string;
+    method: string;
+    ts: number;
+    duration: number;
+    status: number | null;
+    statusText?: string | null;
+    error?: string;
+    requestHeaders?: Record<string, string>;
+    responseHeaders?: Record<string, string>;
+    requestBody?: string | null;
+    responseBody?: string | null;
+  },
+  config: import("./redact").RedactConfig
+) {
   let sessionId: string | null = null;
   try {
     if (!nextHeaders) {
@@ -63,7 +66,7 @@ async function push(entry: {
         requestBody: entry.requestBody ?? null,
         responseBody: entry.responseBody ?? null,
         sessionId,
-      })
+      }, config)
     );
   } catch {}
 }
@@ -111,8 +114,13 @@ function resolveUrl(config: Record<string, unknown>): string {
  *       axiosClient.interceptors.response.use(response, error)
  *     } catch {}
  *   }
+ *
+ * Redaction options:
+ *   createDevPanelAxiosInterceptors({ redact: (d) => ({ ...d, bodyKeys: [...d.bodyKeys, "my_field"] }) })
+ *   createDevPanelAxiosInterceptors({ redact: { headers: [] } })  // disable header redaction
  */
-export function createDevPanelAxiosInterceptors() {
+export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput }) {
+  const redactConfig = resolveRedactConfig(options?.redact);
   const timings = new WeakMap<object, Timing>();
 
   function request(config: object) {
@@ -143,7 +151,7 @@ export function createDevPanelAxiosInterceptors() {
         responseHeaders: flattenHeaders(r.headers),
         requestBody: stringify((config as Record<string, unknown>).data),
         responseBody: stringify(r.data),
-      });
+      }, redactConfig);
     }
     return res;
   }
@@ -169,7 +177,7 @@ export function createDevPanelAxiosInterceptors() {
             responseHeaders: flattenHeaders(errResponse?.headers),
             requestBody: stringify((config as Record<string, unknown>).data),
             responseBody: stringify(errResponse?.data),
-          });
+          }, redactConfig);
         }
       }
     }
