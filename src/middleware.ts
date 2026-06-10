@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-type MiddlewareHandler = (
-  request: NextRequest
-) =>
+type MiddlewareResult =
   | NextResponse
   | Response
   | null
@@ -27,9 +25,13 @@ type MiddlewareHandler = (
  *   export const { middleware, config } = withDevPanel(handler, {
  *     matcher: ["/api/:path*", "/((?!_next).*)"],
  *   })
+ *
+ * If your project's NextRequest type conflicts with this lib's Next.js version,
+ * pass it as a type parameter — TypeScript infers the handler's request type:
+ *   export const { middleware, config } = withDevPanel<NextRequest>(async (req) => { ... })
  */
-export function withDevPanel(
-  handler?: MiddlewareHandler,
+export function withDevPanel<TRequest = NextRequest>(
+  handler?: (request: TRequest) => MiddlewareResult,
   options?: { matcher?: string[] }
 ) {
   async function middleware(request: NextRequest) {
@@ -37,7 +39,7 @@ export function withDevPanel(
     const sid = existing ?? crypto.randomUUID();
 
     // Run the caller's middleware logic first so it can redirect/short-circuit.
-    const userResponse = await handler?.(request);
+    const userResponse = await handler?.(request as unknown as TRequest);
 
     let response: NextResponse;
 

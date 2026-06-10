@@ -36,7 +36,8 @@ async function getSessionId(): Promise<string | null> {
 }
 
 /**
- * Patches globalThis.fetch to capture server-side requests.
+ * Patches globalThis.fetch to capture server-side requests made via native fetch.
+ *
  * Call this inside your own register() if you already have one:
  *
  *   export async function register() {
@@ -45,7 +46,12 @@ async function getSessionId(): Promise<string | null> {
  *   }
  *
  * For simple use with no other setup:
- *   export { register } from "./server-network-panel/patch"
+ *   export { register } from "next-fetch-panel/patch"
+ *
+ * Note: if you use axios and it caches the original fetch reference before this
+ * patch runs (e.g. with adapter: 'fetch'), use createDevPanelAxiosInterceptors()
+ * from "next-fetch-panel/interceptor" instead. No adapter change is required —
+ * the interceptors work with any axios adapter.
  */
 export async function registerDevPanel() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;

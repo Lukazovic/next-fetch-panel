@@ -39,6 +39,7 @@ export default defineConfig([
       patch: "src/patch.ts",
       middleware: "src/middleware.ts",
       route: "src/route.ts",
+      interceptor: "src/interceptor.ts",
     },
     format: ["cjs", "esm"],
     dts: true,

@@ -37,6 +37,11 @@
       "types": "./dist/route.d.ts",
       "import": "./dist/route.mjs",
       "require": "./dist/route.js"
+    },
+    "./interceptor": {
+      "types": "./dist/interceptor.d.ts",
+      "import": "./dist/interceptor.mjs",
+      "require": "./dist/interceptor.js"
     }
   },
   "files": [
