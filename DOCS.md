@@ -292,6 +292,10 @@ A fixed button in the bottom-right corner. Shows a green dot when entries exist 
 
 Click any row to open the detail pane. Click the same row again to close it.
 
+### Filter Bar
+
+A search input above the request list. Type any substring to filter requests by URL. The counter shows `X / Y requests` when a filter is active. Selecting an entry and then narrowing the filter so it no longer matches auto-deselects the detail pane. Click the **×** icon or clear the input to reset.
+
 ### Detail Pane
 
 Opens to the right of the table inside a `ResizablePanelGroup`. The split is user-adjustable and the size is persisted to `localStorage`. Four tabs:

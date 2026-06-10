@@ -90,13 +90,17 @@
     line-height: inherit;
   }
 
-  /* Same for number inputs used in settings */
+  /* Text and number inputs — remove browser defaults */
+  [data-nfp] input[type="text"],
   [data-nfp] input[type="number"] {
     appearance: none;
     -webkit-appearance: none;
+    border: 0;
+    background: transparent;
     font: inherit;
     color: inherit;
     margin: 0;
+    padding: 0;
   }
 
   /* Remove default table cell spacing */

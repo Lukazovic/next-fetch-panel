@@ -4,7 +4,7 @@ import panelStyles from "./panel.styles";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
-import { Settings2Icon, XIcon } from "lucide-react";
+import { SearchIcon, Settings2Icon, XIcon } from "lucide-react";
 import { cn } from "./utils";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -408,6 +408,18 @@ function PanelInner({
   detailSize: number;
   onDetailSizeChange: (size: number) => void;
 }) {
+  const [filter, setFilter] = useState("");
+  const filteredEntries = filter
+    ? entries.filter((e) => e.url.toLowerCase().includes(filter.toLowerCase()))
+    : entries;
+
+  // Deselect if the selected entry is filtered out
+  useEffect(() => {
+    if (selected && filter && !selected.url.toLowerCase().includes(filter.toLowerCase())) {
+      setSelected(null);
+    }
+  }, [filter, selected, setSelected]);
+
   const groupRef = useGroupRef();
   const detailSizeRef = useRef(detailSize);
   const wasSelectedRef = useRef(false);
@@ -432,7 +444,12 @@ function PanelInner({
         <span className="font-semibold text-foreground">
           Server Network
           {entries.length > 0 && (
-            <span className="ml-1.5 font-normal text-muted-foreground">{entries.length} requests</span>
+            <span className="ml-1.5 font-normal text-muted-foreground">
+              {filter && filteredEntries.length !== entries.length
+                ? `${filteredEntries.length} / ${entries.length}`
+                : entries.length}{" "}
+              requests
+            </span>
           )}
         </span>
         <div className="flex items-center gap-1">
@@ -445,6 +462,25 @@ function PanelInner({
           <Button variant="ghost" size="icon-xs" className="text-muted-foreground ml-1" onClick={onClose}>
             <XIcon />
           </Button>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center border-b border-border px-2 py-1.5">
+        <div className="flex flex-1 items-center gap-1.5 rounded-md bg-muted/40 px-2 py-1 focus-within:ring-1 focus-within:ring-ring/40">
+          <SearchIcon className="size-3 shrink-0 text-muted-foreground" />
+          <input
+            type="text"
+            name="nfp-url-filter"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filter by URL..."
+            className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
+          />
+          {filter && (
+            <button onClick={() => setFilter("")} className="text-muted-foreground hover:text-foreground">
+              <XIcon className="size-3" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -475,10 +511,14 @@ function PanelInner({
                 </tr>
               </thead>
               <tbody>
-                {entries.length === 0 ? (
-                  <tr><td colSpan={4} className="py-6 text-center text-muted-foreground">No requests yet</td></tr>
+                {filteredEntries.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                      {filter ? "No requests match the filter" : "No requests yet"}
+                    </td>
+                  </tr>
                 ) : (
-                  entries.map((entry) => {
+                  filteredEntries.map((entry) => {
                     const isSelected = selected?.id === entry.id;
                     return (
                       <tr
