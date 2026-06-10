@@ -123,23 +123,22 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
   const redactConfig = resolveRedactConfig(options?.redact);
   const timings = new WeakMap<object, Timing>();
 
-  function request(config: object) {
-    const c = config as Record<string, unknown>;
-    timings.set(config, { startTime: performance.now(), ts: Date.now(), url: resolveUrl(c) });
+  function request<T extends object>(config: T): T {
+    timings.set(config, { startTime: performance.now(), ts: Date.now(), url: resolveUrl(config as Record<string, unknown>) });
     return config;
   }
 
-  async function response(res: unknown) {
+  async function response<T>(res: T): Promise<T> {
     // res may not be a full AxiosResponse if a previous interceptor transformed it
     if (!res || typeof res !== "object") return res;
 
-    const config = (res as Record<string, unknown>).config;
+    const r = res as Record<string, unknown>;
+    const config = r.config;
     if (!config || typeof config !== "object") return res;
 
     const t = timings.get(config as object);
     if (t) {
       timings.delete(config as object);
-      const r = res as Record<string, unknown>;
       await push({
         url: t.url,
         method: String((config as Record<string, unknown>).method ?? "GET"),
@@ -156,7 +155,7 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
     return res;
   }
 
-  async function error(err: unknown) {
+  async function error(err: unknown): Promise<never> {
     if (err && typeof err === "object") {
       const e = err as Record<string, unknown>;
       const config = e.config;
