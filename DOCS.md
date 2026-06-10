@@ -148,15 +148,24 @@ Every browser session gets a unique ID (`__dev_sid` cookie, generated on first v
 
 The result: each browser sees only the server-side fetches it triggered, even in a multi-user staging environment.
 
-### 5. Axios Support
+### 5. Axios Support (`src/interceptor.ts`)
 
-By default, axios in Node.js uses the `http`/`https` modules and bypasses `globalThis.fetch` entirely. To make axios requests appear in the panel, create the axios instance with `adapter: "fetch"` (requires axios ≥ 1.7):
+By default, axios in Node.js uses the `http`/`https` modules and bypasses `globalThis.fetch` entirely. Even when configured with `adapter: 'fetch'`, axios caches the original fetch reference at import time — before `instrumentation.ts` has had a chance to patch it — so axios calls still won't appear in the panel.
+
+The recommended approach is `createDevPanelAxiosInterceptors()` from `next-fetch-panel/interceptor`. Register it **before** your existing interceptors using synchronous `require()` so the response interceptor sees the raw `AxiosResponse` before any transformation:
 
 ```ts
-const http = axios.create({ adapter: "fetch" });
+if (typeof window === "undefined") {
+  try {
+    const { createDevPanelAxiosInterceptors } = require("next-fetch-panel/interceptor");
+    const { request, response, error } = createDevPanelAxiosInterceptors();
+    axiosClient.interceptors.request.use(request);
+    axiosClient.interceptors.response.use(response, error);
+  } catch {}
+}
 ```
 
-This routes axios calls through the patched `globalThis.fetch`, making them indistinguishable from native fetch calls in the panel.
+`adapter: 'fetch'` is **not** required — the interceptors work with any axios adapter. They directly call `devLogStore.push()`, bypassing the fetch patch entirely, so they capture axios requests regardless of which adapter is in use.
 
 ### 6. Client Panel (`src/Panel.tsx`)
 
@@ -279,6 +288,10 @@ Default values:
 
 Next.js HMR re-evaluates modules on each change, creating a new store instance. Attaching the store to `globalThis` ensures there is always exactly one instance per Node.js process, and it survives hot-reloads.
 
+### `instrumentation.ts` location
+
+Next.js expects `instrumentation.ts` at the root of the project, or inside `src/` if the project uses a `src/` directory. Placing it at the root when `src/` exists (or vice versa) causes the `register()` function to never run, meaning `globalThis.fetch` is never patched and no requests appear in the panel. Confirm the file is in `src/instrumentation.ts` if your project has a `src/` layout.
+
 ### Why buffer replay on SSE connect?
 
 SSR fetches execute during the request lifecycle, often completing before the browser has opened the `EventSource` connection. The 100-entry buffer captures these pre-connect entries and replays them as the first frames on every new SSE connection.
@@ -333,6 +346,7 @@ packages/next-fetch-panel/
 │   ├── patch.ts        Server entry — globalThis.fetch patch + registerDevPanel()
 │   ├── middleware.ts   Server entry — session cookie + withDevPanel()
 │   ├── route.ts        Server entry — SSE handler + createDevPanelRoute()
+│   ├── interceptor.ts  Server entry — axios interceptors + createDevPanelAxiosInterceptors()
 │   ├── store.ts        Singleton pub/sub store (internal, shared via globalThis)
 │   ├── redact.ts       Secret redaction (internal)
 │   ├── utils.ts        cn() utility (internal)
@@ -342,7 +356,8 @@ packages/next-fetch-panel/
 │   ├── index.mjs / index.js / index.d.ts
 │   ├── patch.mjs / patch.js / patch.d.ts
 │   ├── middleware.mjs / middleware.js / middleware.d.ts
-│   └── route.mjs / route.js / route.d.ts
+│   ├── route.mjs / route.js / route.d.ts
+│   └── interceptor.mjs / interceptor.js / interceptor.d.ts
 ├── package.json
 ├── tsup.config.ts
 └── tsconfig.json
@@ -357,6 +372,7 @@ import type { LogEntry } from "next-fetch-panel";
 import { registerDevPanel } from "next-fetch-panel/patch";
 import { withDevPanel } from "next-fetch-panel/middleware";
 import { createDevPanelRoute } from "next-fetch-panel/route";
+import { createDevPanelAxiosInterceptors } from "next-fetch-panel/interceptor";
 ```
 
 Server utilities are only accessible via sub-path imports. The root `"next-fetch-panel"` entry is client-only so it can carry `"use client"` without affecting server code.
@@ -397,7 +413,12 @@ export default defineConfig([
   },
   // Pipeline 2: Server bundles
   {
-    entry: { patch: "src/patch.ts", middleware: "src/middleware.ts", route: "src/route.ts" },
+    entry: {
+      patch: "src/patch.ts",
+      middleware: "src/middleware.ts",
+      route: "src/route.ts",
+      interceptor: "src/interceptor.ts",
+    },
     format: ["cjs", "esm"],
     dts: true,
     splitting: false,
@@ -430,6 +451,7 @@ The library is split into four entry points, each with a distinct runtime enviro
 | `next-fetch-panel/patch` | Node.js server | No | `globalThis.fetch` interception |
 | `next-fetch-panel/middleware` | Node.js / Edge | No | Session cookie + header |
 | `next-fetch-panel/route` | Node.js server | No | SSE stream handler |
+| `next-fetch-panel/interceptor` | Node.js server | No | Axios request interception |
 
 ### Why server utilities are not in the root index
 
@@ -550,10 +572,10 @@ npm run dev        # tsup --watch, rebuilds on change
 
 Before `npm publish`:
 
-1. `npm run build` — verify `dist/` has `.mjs`, `.js`, `.d.ts`, and `.d.mts` files for all four entries.
+1. `npm run build` — verify `dist/` has `.mjs`, `.js`, `.d.ts`, and `.d.mts` files for all five entries.
 2. `head -1 dist/index.mjs` — must show `"use client";`.
 3. `head -1 dist/patch.mjs` — must NOT start with `"use client"`.
 4. `package.json` `files` field — only `dist/` and `README.md`; not `src/`, `tsup.config.ts`, or `tsconfig.json`.
-5. Peer dependencies — `react`, `next`, `react-dom`, `tailwindcss` are in `peerDependencies`, not `dependencies`.
-6. `exports` map — all four sub-paths (`.`, `./patch`, `./middleware`, `./route`) point to existing `dist/` files.
+5. Peer dependencies — `react`, `next`, `react-dom` are in `peerDependencies`, not `dependencies`.
+6. `exports` map — all five sub-paths (`.`, `./patch`, `./middleware`, `./route`, `./interceptor`) point to existing `dist/` files.
 7. `npm pack` — install the resulting tarball in a clean project to confirm it works outside the monorepo.
