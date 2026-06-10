@@ -9,7 +9,6 @@ A real-time DevTools panel that intercepts all server-side `fetch()` calls in a 
 - Next.js 15 or 16 (App Router)
 - React 19
 - Node.js runtime (not Edge)
-- Tailwind CSS v4
 
 ---
 
@@ -139,14 +138,27 @@ The actual HTTP request is never modified — only the copy kept for display.
 
 ## Using axios
 
-Create your axios instance with `adapter: "fetch"` (requires axios ≥ 1.7):
+Register the dev panel interceptors **before** your own interceptors. Use a synchronous `require()` so they run first in the response chain:
 
 ```ts
+// your-axios-client.ts
 import axios from "axios";
 
-const http = axios.create({ adapter: "fetch" });
-const { data } = await http.get("https://api.example.com/users");
+const http = axios.create({ baseURL: "https://api.example.com" });
+
+if (typeof window === "undefined") {
+  try {
+    const { createDevPanelAxiosInterceptors } = require("next-fetch-panel/interceptor");
+    const { request, response, error } = createDevPanelAxiosInterceptors();
+    http.interceptors.request.use(request);
+    http.interceptors.response.use(response, error);
+  } catch {}
+}
+
+export default http;
 ```
+
+No axios configuration change is required — `adapter: 'fetch'` is **not** needed. The interceptors work with any axios adapter and complement `instrumentation.ts`: native `fetch()` calls are captured by the fetch patch, axios calls are captured by the interceptors.
 
 ---
 
@@ -164,12 +176,11 @@ const { data } = await http.get("https://api.example.com/users");
 ## Public API
 
 ```ts
-import {
-  DevNetworkPanel,      // React component — place in your layout
-  withDevPanel,         // Middleware composer
-  registerDevPanel,     // Call inside your register() function
-  createDevPanelRoute,  // Route handler factory with optional guard
-} from "next-fetch-panel";
-
+import { DevNetworkPanel } from "next-fetch-panel";
 import type { LogEntry } from "next-fetch-panel";
+
+import { registerDevPanel } from "next-fetch-panel/patch";
+import { withDevPanel } from "next-fetch-panel/middleware";
+import { createDevPanelRoute } from "next-fetch-panel/route";
+import { createDevPanelAxiosInterceptors } from "next-fetch-panel/interceptor";
 ```
