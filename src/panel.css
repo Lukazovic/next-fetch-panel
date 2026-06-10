@@ -1,66 +1,155 @@
 @import "tailwindcss/theme" source(none);
 @import "tailwindcss/utilities";
 
+/* Scan lib source files so all utility classes used in components are compiled. */
+@source "./**/*.{tsx,ts}";
+
 /*
-  Map Tailwind semantic color utilities to CSS variables.
-  Uses consumer's shadcn variables when available, with sensible fallbacks
-  so the panel works even without shadcn installed.
+  Make dark: utilities respond to the .dark class (JS-controlled) rather than
+  only prefers-color-scheme, so the panel's own dark mode toggle works.
 */
-:root {
-  --nfp-background: var(--background, #ffffff);
-  --nfp-foreground: var(--foreground, #09090b);
-  --nfp-border: var(--border, #e4e4e7);
-  --nfp-muted: var(--muted, #f4f4f5);
-  --nfp-muted-foreground: var(--muted-foreground, #71717a);
-  --nfp-secondary: var(--secondary, #f4f4f5);
-  --nfp-secondary-foreground: var(--secondary-foreground, #18181b);
-  --nfp-primary: var(--primary, #18181b);
-  --nfp-primary-foreground: var(--primary-foreground, #fafafa);
-  --nfp-accent: var(--accent, #f4f4f5);
-  --nfp-accent-foreground: var(--accent-foreground, #18181b);
-  --nfp-ring: var(--ring, #a1a1aa);
-  --nfp-card: var(--card, #ffffff);
-  --nfp-card-foreground: var(--card-foreground, #09090b);
-  --nfp-destructive: var(--destructive, #ef4444);
+@variant dark (&:where(.dark, .dark *));
+
+/*
+  Explicit light theme class.
+  Applied by JS when the user selects "Light" mode or when system resolves to light.
+  Uses hardcoded values (not var()) so it is NEVER affected by the consumer's
+  <html class="dark"> or any other ancestor — CSS variables are inherited, so using
+  var(--background) here would still pick up the dark value set on <html>.
+*/
+.nfp-theme-light {
+  --nfp-background: #ffffff;
+  --nfp-foreground: #09090b;
+  --nfp-border: #e4e4e7;
+  --nfp-muted: #f4f4f5;
+  --nfp-muted-foreground: #71717a;
+  --nfp-secondary: #f4f4f5;
+  --nfp-secondary-foreground: #18181b;
+  --nfp-primary: #18181b;
+  --nfp-primary-foreground: #fafafa;
+  --nfp-accent: #f4f4f5;
+  --nfp-accent-foreground: #18181b;
+  --nfp-ring: #a1a1aa;
+  --nfp-card: #ffffff;
+  --nfp-card-foreground: #09090b;
+  --nfp-destructive: #ef4444;
 }
 
-/* Dark mode via .dark class on an ancestor (JS-controlled, e.g. panel settings) */
-.dark {
-  --nfp-background: var(--background, #09090b);
-  --nfp-foreground: var(--foreground, #fafafa);
-  --nfp-border: var(--border, #27272a);
-  --nfp-muted: var(--muted, #27272a);
-  --nfp-muted-foreground: var(--muted-foreground, #a1a1aa);
-  --nfp-secondary: var(--secondary, #27272a);
-  --nfp-secondary-foreground: var(--secondary-foreground, #fafafa);
-  --nfp-primary: var(--primary, #fafafa);
-  --nfp-primary-foreground: var(--primary-foreground, #18181b);
-  --nfp-accent: var(--accent, #27272a);
-  --nfp-accent-foreground: var(--accent-foreground, #fafafa);
-  --nfp-ring: var(--ring, #d4d4d8);
-  --nfp-card: var(--card, #09090b);
-  --nfp-card-foreground: var(--card-foreground, #fafafa);
-  --nfp-destructive: var(--destructive, #f87171);
+/*
+  Explicit dark theme class.
+  Applied by JS when the user selects "Dark" mode or when system resolves to dark.
+  Same reason for hardcoded values — avoids inheriting light/dark values from consumer.
+*/
+.nfp-theme-dark {
+  --nfp-background: #09090b;
+  --nfp-foreground: #fafafa;
+  --nfp-border: #27272a;
+  --nfp-muted: #27272a;
+  --nfp-muted-foreground: #a1a1aa;
+  --nfp-secondary: #27272a;
+  --nfp-secondary-foreground: #fafafa;
+  --nfp-primary: #fafafa;
+  --nfp-primary-foreground: #18181b;
+  --nfp-accent: #27272a;
+  --nfp-accent-foreground: #fafafa;
+  --nfp-ring: #d4d4d8;
+  --nfp-card: #09090b;
+  --nfp-card-foreground: #fafafa;
+  --nfp-destructive: #f87171;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --nfp-background: var(--background, #09090b);
-    --nfp-foreground: var(--foreground, #fafafa);
-    --nfp-border: var(--border, #27272a);
-    --nfp-muted: var(--muted, #27272a);
-    --nfp-muted-foreground: var(--muted-foreground, #a1a1aa);
-    --nfp-secondary: var(--secondary, #27272a);
-    --nfp-secondary-foreground: var(--secondary-foreground, #fafafa);
-    --nfp-primary: var(--primary, #fafafa);
-    --nfp-primary-foreground: var(--primary-foreground, #18181b);
-    --nfp-accent: var(--accent, #27272a);
-    --nfp-accent-foreground: var(--accent-foreground, #fafafa);
-    --nfp-ring: var(--ring, #d4d4d8);
-    --nfp-card: var(--card, #09090b);
-    --nfp-card-foreground: var(--card-foreground, #fafafa);
-    --nfp-destructive: var(--destructive, #f87171);
+
+/*
+  Scoped element reset for panel containers.
+  Placed in @layer so Tailwind utilities (unlayered = higher priority) always win.
+  This ensures browser defaults are normalized without fighting our own utility classes.
+*/
+@layer nfp-reset {
+  [data-nfp],
+  [data-nfp] *,
+  [data-nfp] *::before,
+  [data-nfp] *::after {
+    box-sizing: border-box;
   }
+
+  /*
+    Without Tailwind's preflight, <button> keeps browser defaults:
+    outset border, system font (not inherited), non-zero padding, gray background.
+    Reset these so our utility classes are the only source of button styling.
+  */
+  [data-nfp] button {
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    line-height: inherit;
+  }
+
+  /* Same for number inputs used in settings */
+  [data-nfp] input[type="number"] {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    color: inherit;
+    margin: 0;
+  }
+
+  /* Remove default table cell spacing */
+  [data-nfp] table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  /*
+    Base font as a fallback for elements with no explicit text-* utility.
+    Placed in the layer so Tailwind utility classes (unlayered = higher priority)
+    win when both a text-* class and [data-nfp] apply to the same element.
+    Example: SheetContent has both data-nfp and text-xs — text-xs (12px) wins.
+    Children without a text-* class inherit 12px from the SheetContent ancestor.
+  */
+  [data-nfp] {
+    font-size: 14px;
+    line-height: 1.5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+}
+
+/*
+  Override Tailwind's rem-based design tokens with px equivalents so the panel is
+  immune to the consumer's html { font-size } value. rem is always relative to the
+  <html> element — there is no CSS-only way to scope rem, so we replace the CSS
+  custom properties that Tailwind utilities reference with absolute px values.
+
+  Values match what Tailwind would produce at the standard 16px root:
+    --spacing: 0.25rem × 16 = 4px
+    --text-xs: 0.75rem × 16 = 12px  (line-height: 1rem × 16 = 16px)
+    --text-sm: 0.875rem × 16 = 14px (line-height: 1.25rem × 16 = 20px)
+    --text-base: 1rem × 16 = 16px   (line-height: 1.5rem × 16 = 24px)
+
+  These are unlayered so they win over the :root,:host Tailwind definitions
+  (same specificity, later source order = wins).
+*/
+[data-nfp] {
+  --spacing: 4px;
+
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+
+  /* Container (max-w-sm, max-w-lg, etc.) — also rem-based by default */
+  --container-sm: 384px;  /* 24rem × 16 */
+  --container-lg: 512px;  /* 32rem × 16 */
+
+  /* Button border-radius — hardcoded to match panel isolation (not consumer's shadcn radius) */
+  --radius-md: 6px;
 }
 
 @theme inline {
@@ -79,4 +168,6 @@
   --color-card: var(--nfp-card);
   --color-card-foreground: var(--nfp-card-foreground);
   --color-destructive: var(--nfp-destructive);
+  /* Map input to secondary so dark:bg-input/30 in button variants resolves correctly */
+  --color-input: var(--nfp-secondary);
 }

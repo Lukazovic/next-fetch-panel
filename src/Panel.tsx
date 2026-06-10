@@ -173,14 +173,17 @@ function SettingsDialog({
   theme: "light" | "dark";
 }) {
   const isDark = theme === "dark";
+  const themeClass = isDark ? "nfp-theme-dark dark" : "nfp-theme-light";
   const isHorizontal = config.sheetSide === "bottom" || config.sheetSide === "top";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        data-nfp
+        style={{ maxWidth: 520 }}
         className={cn(
-          isDark && "dark",
-          "bg-background text-foreground border-border sm:max-w-lg gap-0 p-0 overflow-hidden",
+          themeClass,
+          "bg-background text-foreground border-border gap-0 p-0 overflow-hidden",
         )}
         showCloseButton={false}
       >
@@ -588,6 +591,11 @@ function Panel() {
     ? { height: config.height }
     : { width: config.width, maxWidth: config.width };
 
+  // Scoped theme class sets --nfp-* vars with hardcoded values so they are never
+  // affected by the consumer's <html class="dark"> or any other ancestor.
+  // The "dark" class is kept alongside for dark: utility selectors.
+  const themeClass = isDark ? "nfp-theme-dark dark" : "nfp-theme-light";
+
   return (
     <>
       <SettingsDialog
@@ -606,7 +614,8 @@ function Panel() {
             side={config.sheetSide}
             showCloseButton={false}
             showOverlay={config.sheetModal}
-            className={cn(isDark && "dark", "bg-background text-foreground border-border font-mono text-xs gap-0 p-0")}
+            data-nfp
+            className={cn(themeClass, "bg-background text-foreground border-border font-mono text-xs gap-0 p-0")}
             style={sheetSize}
           >
             <SheetTitle className="sr-only">Server Network Panel</SheetTitle>
@@ -617,18 +626,17 @@ function Panel() {
       )}
 
       {config.mode === "fixed" && open && (
-        <div className={cn(isDark && "dark")} suppressHydrationWarning>
-          <div
-            className="fixed bottom-14 right-4 z-9998 flex flex-col rounded-lg border border-border bg-background text-foreground font-mono text-xs shadow-2xl"
-            style={{ width: config.width, height: config.height }}
-          >
-            <PanelInner {...innerProps} />
-          </div>
+        <div
+          data-nfp
+          className={cn(themeClass, "fixed bottom-14 right-4 z-9998 flex flex-col rounded-lg border border-border bg-background text-foreground font-mono text-xs shadow-2xl")}
+          style={{ width: config.width, height: config.height }}
+        >
+          <PanelInner {...innerProps} />
         </div>
       )}
 
       {!open && (
-        <div className={cn(isDark && "dark")} suppressHydrationWarning>
+        <div data-nfp className={cn(themeClass)}>
           <Button
             variant="outline"
             size="sm"
