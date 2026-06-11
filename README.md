@@ -139,6 +139,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
+In sheet mode, the panel is resizable — drag the thin handle at the open edge to change its height (bottom/top sheet) or width (left/right sheet). The size is saved to `localStorage` automatically.
+
 ---
 
 ## Controlling the panel programmatically
@@ -290,8 +292,8 @@ You can use any condition — `NODE_ENV`, a custom env var, a feature flag, or a
 ## Public API
 
 ```ts
-import { DevNetworkPanel } from "next-fetch-panel";
-import type { LogEntry } from "next-fetch-panel";
+import { DevNetworkPanel, useDevNetworkPanel } from "next-fetch-panel";
+import type { LogEntry, ButtonPosition } from "next-fetch-panel";
 
 import { registerDevPanel } from "next-fetch-panel/patch";
 import { withDevPanel } from "next-fetch-panel/middleware";

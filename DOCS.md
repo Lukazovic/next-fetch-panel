@@ -360,8 +360,12 @@ The button can be hidden entirely with `showToggleButton={false}` — see [Progr
 
 | Mode | Description |
 |------|-------------|
-| **Sheet** | Slides in from any edge (bottom / right / top / left) |
+| **Sheet** | Slides in from any edge (bottom / right / top / left). Resizable by dragging the edge handle. |
 | **Fixed modal** | Positioned fixed near the toggle button with configurable width and height |
+
+### Sheet Resize Handle
+
+In sheet mode, a thin drag strip is placed at the open edge of the sheet (top edge for a bottom sheet, left edge for a right sheet, etc.). Hovering over it reveals a pill indicator; dragging resizes the sheet live. The new size is saved to `localStorage` immediately and restored on the next page load. The size is shared with the fixed mode `width`/`height` settings.
 
 ### Request Table
 
@@ -407,8 +411,8 @@ type PanelConfig = {
   mode: "sheet" | "fixed";
   sheetSide: "bottom" | "right" | "top" | "left";
   sheetModal: boolean;        // true = blocks page interaction
-  width: number;              // px — used for fixed mode and left/right sheet
-  height: number;             // px — used for fixed mode and top/bottom sheet
+  width: number;              // px — fixed mode width; also set by drag-resizing a left/right sheet
+  height: number;             // px — fixed mode height; also set by drag-resizing a bottom/top sheet
   colorScheme: "system" | "light" | "dark";
   detailSize: number;         // detail pane width as % of panel body (0–100)
 };

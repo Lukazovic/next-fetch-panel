@@ -175,7 +175,6 @@ function SettingsDialog({
 }) {
   const isDark = theme === "dark";
   const themeClass = isDark ? "nfp-theme-dark dark" : "nfp-theme-light";
-  const isHorizontal = config.sheetSide === "bottom" || config.sheetSide === "top";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -248,12 +247,6 @@ function SettingsDialog({
                   </p>
                 </div>
 
-                <div className="flex gap-6">
-                  {isHorizontal
-                    ? <NumInput label="Height" value={config.height} onChange={(v) => update({ height: v })} />
-                    : <NumInput label="Width"  value={config.width}  onChange={(v) => update({ width: v })} />
-                  }
-                </div>
               </>
             )}
 
@@ -570,6 +563,59 @@ function PanelInner({
 
 const CLEARED_AT_KEY = "next-fetch-panel-cleared-at";
 
+function SheetResizeHandle({
+  side,
+  onResize,
+}: {
+  side: SheetSide;
+  onResize: (size: number) => void;
+}) {
+  const isHorizontal = side === "bottom" || side === "top";
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+
+    function onMove(ev: PointerEvent) {
+      let size: number;
+      if (side === "bottom")     size = window.innerHeight - ev.clientY;
+      else if (side === "top")   size = ev.clientY;
+      else if (side === "right") size = window.innerWidth - ev.clientX;
+      else                       size = ev.clientX;
+      const max = isHorizontal
+        ? Math.round(window.innerHeight * 0.9)
+        : Math.round(window.innerWidth * 0.9);
+      onResize(Math.min(max, Math.max(200, Math.round(size))));
+    }
+
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  return (
+    <div
+      className={cn(
+        "group/resize shrink-0 flex items-center justify-center select-none touch-none",
+        isHorizontal
+          ? "h-2 w-full cursor-ns-resize"
+          : "w-2 self-stretch cursor-ew-resize",
+      )}
+      onPointerDown={handlePointerDown}
+    >
+      <div
+        className={cn(
+          "rounded-full bg-border opacity-0 transition-opacity group-hover/resize:opacity-100",
+          isHorizontal ? "h-1 w-8" : "w-1 h-8",
+        )}
+      />
+    </div>
+  );
+}
+
 export type ButtonPosition =
   | "bottom-right"
   | "bottom-center"
@@ -682,12 +728,36 @@ function Panel({ showToggleButton, buttonPosition }: { showToggleButton: boolean
             showCloseButton={false}
             showOverlay={config.sheetModal}
             data-nfp
-            className={cn(themeClass, "bg-background text-foreground border-border font-mono text-xs gap-0 p-0")}
+            className={cn(
+              themeClass,
+              "bg-background text-foreground border-border font-mono text-xs gap-0 p-0",
+              !isHorizontal && "flex-row",
+            )}
             style={sheetSize}
           >
             <SheetTitle className="sr-only">Server Network Panel</SheetTitle>
             <SheetDescription className="sr-only">Real-time SSR fetch inspector</SheetDescription>
-            <PanelInner {...innerProps} />
+
+            {/* Handle at start edge: top of bottom-sheet, left of right-sheet */}
+            {(config.sheetSide === "bottom" || config.sheetSide === "right") && (
+              <SheetResizeHandle
+                side={config.sheetSide}
+                onResize={(size) => isHorizontal ? update({ height: size }) : update({ width: size })}
+              />
+            )}
+
+            {isHorizontal
+              ? <PanelInner {...innerProps} />
+              : <div className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-0"><PanelInner {...innerProps} /></div>
+            }
+
+            {/* Handle at end edge: bottom of top-sheet, right of left-sheet */}
+            {(config.sheetSide === "top" || config.sheetSide === "left") && (
+              <SheetResizeHandle
+                side={config.sheetSide}
+                onResize={(size) => isHorizontal ? update({ height: size }) : update({ width: size })}
+              />
+            )}
           </SheetContent>
         </Sheet>
       )}
