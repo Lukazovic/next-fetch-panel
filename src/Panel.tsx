@@ -695,8 +695,8 @@ function Panel() {
   );
 }
 
-export default function DevNetworkPanel() {
+export default function DevNetworkPanel({ enabled = true }: { enabled?: boolean }) {
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
-  if (!mounted) return null;
+  if (!enabled || !mounted) return null;
   return createPortal(<Panel />, document.body);
 }

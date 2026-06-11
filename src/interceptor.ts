@@ -119,7 +119,15 @@ function resolveUrl(config: Record<string, unknown>): string {
  *   createDevPanelAxiosInterceptors({ redact: (d) => ({ ...d, bodyKeys: [...d.bodyKeys, "my_field"] }) })
  *   createDevPanelAxiosInterceptors({ redact: { headers: [] } })  // disable header redaction
  */
-export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput }) {
+export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput; enabled?: boolean }) {
+  if (options?.enabled === false) {
+    return {
+      request: <T>(config: T) => config,
+      response: <T>(res: T) => Promise.resolve(res),
+      error: (err: unknown) => Promise.reject(err),
+    };
+  }
+
   const redactConfig = resolveRedactConfig(options?.redact);
   const timings = new WeakMap<object, Timing>();
 

@@ -65,7 +65,8 @@ async function getSessionId(): Promise<string | null> {
  *   // disable a category
  *   await registerDevPanel({ redact: { headers: [] } })
  */
-export async function registerDevPanel(options?: { redact?: RedactInput }) {
+export async function registerDevPanel(options?: { redact?: RedactInput; enabled?: boolean }) {
+  if (options?.enabled === false) return;
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
   const { devLogStore } = await import("./store");

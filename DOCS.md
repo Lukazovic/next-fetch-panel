@@ -12,6 +12,7 @@ For integration instructions, see [README.md](./README.md).
 - [Architecture](#architecture)
 - [How It Works](#how-it-works)
 - [Redacting Secrets](#redacting-secrets)
+- [Disabling per Environment](#disabling-per-environment)
 - [Panel UI](#panel-ui)
 - [Configuration](#configuration)
 - [Technical Notes & Gotchas](#technical-notes--gotchas)
@@ -36,7 +37,7 @@ Next.js Server Components and Route Handlers run `fetch()` on the server — inv
 2. Streaming those records to the browser via Server-Sent Events (SSE)
 3. Rendering them in a floating panel overlaid on the running app
 
-Each browser session only sees the requests it triggered. Secret values (API keys, tokens, passwords) are redacted before being stored. The panel is always enabled — there is no `NODE_ENV` gate — so it can be used in staging or any environment where server-side network visibility is needed.
+Each browser session only sees the requests it triggered. Secret values (API keys, tokens, passwords) are redacted before being stored. The panel has no built-in environment gate — it can be used in development, staging, or any environment where server-side network visibility is needed. Each entry point accepts an `enabled` option (or prop) to disable it entirely for a given environment.
 
 ---
 
@@ -265,6 +266,38 @@ await registerDevPanel({
 ```
 
 Both `registerDevPanel` and `createDevPanelAxiosInterceptors` accept the same `redact` option independently, so you can configure them differently if needed.
+
+---
+
+## Disabling per Environment
+
+Every entry point accepts an `enabled` option (defaulting to `true`). Pass `false` to make that layer a complete no-op — no patching, no cookies, no SSE stream, no panel rendered.
+
+```ts
+// instrumentation.ts
+await registerDevPanel({ enabled: process.env.NODE_ENV !== "production" });
+
+// middleware.ts / proxy.ts
+export const middleware = withDevPanel(handler, { enabled: process.env.NODE_ENV !== "production" });
+
+// app/api/dev-network/route.ts
+export const GET = createDevPanelRoute({ enabled: process.env.NODE_ENV !== "production" });
+
+// axios client
+createDevPanelAxiosInterceptors({ enabled: process.env.NODE_ENV !== "production" });
+
+// app/layout.tsx
+<DevNetworkPanel enabled={process.env.NODE_ENV !== "production"} />
+```
+
+You can use any condition — `NODE_ENV`, a custom env var, a feature flag, or any boolean expression. Each entry point is independent, so you can disable only the server-side patching while keeping the route handler open for other sessions, or vice versa.
+
+When `enabled` is `false`:
+- `registerDevPanel` — returns immediately, `globalThis.fetch` is not patched
+- `withDevPanel` — skips session cookie logic, calls through to your handler if provided, returns `NextResponse.next()`
+- `createDevPanelRoute` — returns `404`
+- `createDevPanelAxiosInterceptors` — returns identity interceptors (request/response pass through unchanged)
+- `<DevNetworkPanel>` — renders `null`
 
 ---
 

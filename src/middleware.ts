@@ -33,9 +33,14 @@ type MiddlewareResult =
  */
 export function withDevPanel<TRequest = NextRequest>(
   handler?: (request: TRequest) => MiddlewareResult,
-  options?: { matcher?: string[] }
+  options?: { matcher?: string[]; enabled?: boolean }
 ) {
   async function middleware(request: NextRequest) {
+    if (options?.enabled === false) {
+      const userResponse = await handler?.(request as unknown as TRequest);
+      if (userResponse instanceof Response) return userResponse as NextResponse;
+      return NextResponse.next();
+    }
     const existing = request.cookies.get("__dev_sid")?.value;
     const sid = existing ?? crypto.randomUUID();
 

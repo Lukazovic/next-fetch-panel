@@ -22,8 +22,10 @@ type GuardFn = (
  * For simple use with no access control:
  *   export { dynamic, GET } from "@/server-network-panel/route"
  */
-export function createDevPanelRoute(options?: { guard?: GuardFn }) {
+export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boolean }) {
   return async function GET(request: Request) {
+    if (options?.enabled === false) return new Response(null, { status: 404 });
+
     const blocked = await options?.guard?.(request);
     if (blocked instanceof Response) return blocked;
 

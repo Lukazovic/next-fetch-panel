@@ -204,6 +204,31 @@ No axios configuration change is required — `adapter: 'fetch'` is **not** need
 
 ---
 
+## Disabling per environment
+
+Every entry point accepts an `enabled` option (or prop) that defaults to `true`. Pass `false` to make that layer a complete no-op — no patching, no cookies, no SSE stream, no panel rendered.
+
+```ts
+// instrumentation.ts
+await registerDevPanel({ enabled: process.env.NODE_ENV !== "production" });
+
+// middleware.ts / proxy.ts
+export const middleware = withDevPanel(handler, { enabled: process.env.NODE_ENV !== "production" });
+
+// app/api/dev-network/route.ts
+export const GET = createDevPanelRoute({ enabled: process.env.NODE_ENV !== "production" });
+
+// axios client
+createDevPanelAxiosInterceptors({ enabled: process.env.NODE_ENV !== "production" });
+
+// app/layout.tsx
+<DevNetworkPanel enabled={process.env.NODE_ENV !== "production"} />
+```
+
+You can use any condition — `NODE_ENV`, a custom env var, a feature flag, or any boolean. Each entry point is independent, so you can disable just the fetch patch while keeping the panel open for other sessions, or shut everything off at once.
+
+---
+
 ## Security notes
 
 | Concern | How it is handled |
@@ -211,7 +236,7 @@ No axios configuration change is required — `adapter: 'fetch'` is **not** need
 | User A seeing User B's requests | Each browser session gets a unique `__dev_sid` cookie. The SSE stream filters strictly by session ID. |
 | Panel accessible to anyone | Use the `guard` option on `createDevPanelRoute`. |
 | Secrets leaking to the browser | Configured patterns are replaced with `[REDACTED]` before entries reach the store. |
-| Running in production | Add a `NODE_ENV` gate in `registerDevPanel` or behind a feature flag if needed. |
+| Running in production | Pass `enabled: process.env.NODE_ENV !== "production"` to each entry point. |
 
 ---
 
