@@ -167,6 +167,25 @@ To hide the default floating button (when you're providing your own trigger), pa
 <DevNetworkPanel showToggleButton={false} />
 ```
 
+### Toggle button position
+
+Use `buttonPosition` to place the default toggle button in any of six positions (default: `"bottom-right"`):
+
+```tsx
+<DevNetworkPanel buttonPosition="bottom-center" />
+```
+
+| Value | Position |
+|-------|----------|
+| `"bottom-right"` | Bottom-right corner *(default)* |
+| `"bottom-center"` | Bottom edge, centered |
+| `"bottom-left"` | Bottom-left corner |
+| `"top-right"` | Top-right corner |
+| `"top-center"` | Top edge, centered |
+| `"top-left"` | Top-left corner |
+
+In `fixed` panel mode, the panel container anchors to the same corner/edge as the button.
+
 ---
 
 ## Redacting secrets

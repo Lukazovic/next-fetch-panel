@@ -341,14 +341,27 @@ The default floating "Server Network" button is then never rendered. The panel i
 
 ### Toggle Button
 
-A fixed button in the bottom-right corner. Shows a green dot when entries exist and a count badge. Hides itself when the panel is open to avoid overlapping.
+A fixed floating button. Shows a green dot when entries exist and a count badge. Hides itself when the panel is open to avoid overlapping.
+
+Position is controlled by the `buttonPosition` prop on `<DevNetworkPanel>` (default `"bottom-right"`):
+
+| Value | Position |
+|-------|----------|
+| `"bottom-right"` | Bottom-right corner *(default)* |
+| `"bottom-center"` | Bottom edge, centered |
+| `"bottom-left"` | Bottom-left corner |
+| `"top-right"` | Top-right corner |
+| `"top-center"` | Top edge, centered |
+| `"top-left"` | Top-left corner |
+
+The button can be hidden entirely with `showToggleButton={false}` — see [Programmatic Control](#programmatic-control).
 
 ### Panel Modes
 
 | Mode | Description |
 |------|-------------|
 | **Sheet** | Slides in from any edge (bottom / right / top / left) |
-| **Fixed modal** | Positioned fixed at bottom-right with configurable width and height |
+| **Fixed modal** | Positioned fixed near the toggle button with configurable width and height |
 
 ### Request Table
 

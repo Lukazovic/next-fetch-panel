@@ -570,7 +570,33 @@ function PanelInner({
 
 const CLEARED_AT_KEY = "next-fetch-panel-cleared-at";
 
-function Panel({ showToggleButton }: { showToggleButton: boolean }) {
+export type ButtonPosition =
+  | "bottom-right"
+  | "bottom-center"
+  | "bottom-left"
+  | "top-right"
+  | "top-center"
+  | "top-left";
+
+const BUTTON_POSITION_CLASSES: Record<ButtonPosition, string> = {
+  "bottom-right": "bottom-4 right-4",
+  "bottom-center": "bottom-4 left-1/2 -translate-x-1/2",
+  "bottom-left":  "bottom-4 left-4",
+  "top-right":    "top-4 right-4",
+  "top-center":   "top-4 left-1/2 -translate-x-1/2",
+  "top-left":     "top-4 left-4",
+};
+
+const FIXED_PANEL_POSITION_CLASSES: Record<ButtonPosition, string> = {
+  "bottom-right": "bottom-14 right-4",
+  "bottom-center": "bottom-14 left-1/2 -translate-x-1/2",
+  "bottom-left":  "bottom-14 left-4",
+  "top-right":    "top-14 right-4",
+  "top-center":   "top-14 left-1/2 -translate-x-1/2",
+  "top-left":     "top-14 left-4",
+};
+
+function Panel({ showToggleButton, buttonPosition }: { showToggleButton: boolean; buttonPosition: ButtonPosition }) {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const open = useSyncExternalStore(panelState.subscribe, panelState.getSnapshot, () => false);
   const [selected, setSelected] = useState<LogEntry | null>(null);
@@ -669,7 +695,7 @@ function Panel({ showToggleButton }: { showToggleButton: boolean }) {
       {config.mode === "fixed" && open && (
         <div
           data-nfp
-          className={cn(themeClass, "fixed bottom-14 right-4 z-9998 flex flex-col rounded-lg border border-border bg-background text-foreground font-mono text-xs shadow-2xl")}
+          className={cn(themeClass, "fixed z-9998 flex flex-col rounded-lg border border-border bg-background text-foreground font-mono text-xs shadow-2xl", FIXED_PANEL_POSITION_CLASSES[buttonPosition])}
           style={{ width: config.width, height: config.height }}
         >
           <PanelInner {...innerProps} />
@@ -681,7 +707,7 @@ function Panel({ showToggleButton }: { showToggleButton: boolean }) {
           <Button
             variant="outline"
             size="sm"
-            className="fixed bottom-4 right-4 z-9999 font-mono gap-1.5 shadow-md dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            className={cn("fixed z-9999 font-mono gap-1.5 shadow-md dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800", BUTTON_POSITION_CLASSES[buttonPosition])}
             onClick={panelState.open}
           >
             <span className={entries.length > 0 ? "text-green-500" : "text-muted-foreground"}>●</span>
@@ -709,11 +735,16 @@ export function useDevNetworkPanel() {
 export default function DevNetworkPanel({
   enabled = true,
   showToggleButton = true,
+  buttonPosition = "bottom-right",
 }: {
   enabled?: boolean;
   showToggleButton?: boolean;
+  buttonPosition?: ButtonPosition;
 }) {
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   if (!enabled || !mounted) return null;
-  return createPortal(<Panel showToggleButton={showToggleButton} />, document.body);
+  return createPortal(
+    <Panel showToggleButton={showToggleButton} buttonPosition={buttonPosition} />,
+    document.body
+  );
 }
