@@ -156,6 +156,11 @@
   --radius-md: 6px;
 }
 
+/* Inset shadow avoids overflow-x: auto clipping that outset shadows and after:: indicators hit. */
+[data-nfp] [data-slot="tabs-list"][data-variant="line"] [data-slot="tabs-trigger"][data-active] {
+  box-shadow: inset 0 -2px 0 0 var(--nfp-foreground);
+}
+
 @theme inline {
   --color-background: var(--nfp-background);
   --color-foreground: var(--nfp-foreground);

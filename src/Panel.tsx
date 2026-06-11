@@ -318,7 +318,7 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
       <Tabs defaultValue="general" className="flex flex-col flex-1 overflow-hidden gap-0">
         <TabsList variant="line" className="shrink-0 w-full justify-start rounded-none border-b border-border bg-transparent h-auto px-1 overflow-x-auto scrollbar-none">
           {(["general", "headers", "payload", "response"] as const).map((v) => (
-            <TabsTrigger key={v} value={v} className="text-[11px] capitalize px-2.5 py-1.5">{v}</TabsTrigger>
+            <TabsTrigger key={v} value={v} className="text-[11px] capitalize px-2.5 py-1.5 rounded-none text-muted-foreground data-active:text-foreground data-active:font-semibold">{v}</TabsTrigger>
           ))}
         </TabsList>
 
