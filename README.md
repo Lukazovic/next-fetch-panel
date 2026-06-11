@@ -141,6 +141,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ---
 
+## Controlling the panel programmatically
+
+Use the `useDevNetworkPanel` hook to open, close, or toggle the panel from your own components — without relying on the default floating button.
+
+```tsx
+"use client";
+import { useDevNetworkPanel } from "next-fetch-panel";
+
+export function MyToolbar() {
+  const { isOpen, toggle } = useDevNetworkPanel();
+  return (
+    <button onClick={toggle}>
+      {isOpen ? "Hide" : "Show"} network panel
+    </button>
+  );
+}
+```
+
+The hook returns `{ isOpen, open, close, toggle }`. All four values are stable references — safe to use as event handlers without `useCallback`.
+
+To hide the default floating button (when you're providing your own trigger), pass `showToggleButton={false}` to `<DevNetworkPanel>`:
+
+```tsx
+<DevNetworkPanel showToggleButton={false} />
+```
+
+---
+
 ## Redacting secrets
 
 By default, the panel redacts:

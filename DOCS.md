@@ -13,6 +13,7 @@ For integration instructions, see [README.md](./README.md).
 - [How It Works](#how-it-works)
 - [Redacting Secrets](#redacting-secrets)
 - [Disabling per Environment](#disabling-per-environment)
+- [Programmatic Control](#programmatic-control)
 - [Panel UI](#panel-ui)
 - [Configuration](#configuration)
 - [Technical Notes & Gotchas](#technical-notes--gotchas)
@@ -298,6 +299,41 @@ When `enabled` is `false`:
 - `createDevPanelRoute` — returns `404`
 - `createDevPanelAxiosInterceptors` — returns identity interceptors (request/response pass through unchanged)
 - `<DevNetworkPanel>` — renders `null`
+
+---
+
+## Programmatic Control
+
+The panel's open/closed state lives in a module-level store (`src/panel-state.ts`), shared across the entire app. Use the `useDevNetworkPanel` hook to read and control it from any client component.
+
+```tsx
+"use client";
+import { useDevNetworkPanel } from "next-fetch-panel";
+
+export function MyToolbar() {
+  const { isOpen, open, close, toggle } = useDevNetworkPanel();
+  return <button onClick={toggle}>{isOpen ? "Hide" : "Show"} network panel</button>;
+}
+```
+
+| Value | Type | Description |
+|-------|------|-------------|
+| `isOpen` | `boolean` | Current open state, reactive — updates on every change |
+| `open` | `() => void` | Opens the panel (no-op if already open) |
+| `close` | `() => void` | Closes the panel (no-op if already closed) |
+| `toggle` | `() => void` | Flips the current state |
+
+`open`, `close`, and `toggle` are stable module-level references — safe as event handlers without `useCallback`.
+
+### Hiding the default toggle button
+
+Pass `showToggleButton={false}` to `<DevNetworkPanel>` when you want to drive the panel entirely from your own UI:
+
+```tsx
+<DevNetworkPanel showToggleButton={false} />
+```
+
+The default floating "Server Network" button is then never rendered. The panel itself still opens and closes normally via `useDevNetworkPanel`.
 
 ---
 

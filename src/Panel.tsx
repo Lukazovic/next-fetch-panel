@@ -2,6 +2,7 @@
 
 import panelStyles from "./panel.styles";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { panelState } from "./panel-state";
 import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
 import { SearchIcon, Settings2Icon, XIcon } from "lucide-react";
@@ -569,9 +570,9 @@ function PanelInner({
 
 const CLEARED_AT_KEY = "next-fetch-panel-cleared-at";
 
-function Panel() {
+function Panel({ showToggleButton }: { showToggleButton: boolean }) {
   const [entries, setEntries] = useState<LogEntry[]>([]);
-  const [open, setOpen] = useState(false);
+  const open = useSyncExternalStore(panelState.subscribe, panelState.getSnapshot, () => false);
   const [selected, setSelected] = useState<LogEntry | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -620,7 +621,7 @@ function Panel() {
   const innerProps = {
     entries, selected, setSelected, onClear: handleClear,
     onOpenSettings: () => setSettingsOpen(true),
-    onClose: () => setOpen(false),
+    onClose: panelState.close,
     bottomRef,
     detailSize: config.detailSize,
     onDetailSizeChange: (size: number) => update({ detailSize: size }),
@@ -647,7 +648,7 @@ function Panel() {
       {config.mode === "sheet" && (
         <Sheet
           open={open}
-          onOpenChange={(next) => { if (next || config.sheetModal) setOpen(next); }}
+          onOpenChange={(next) => { if (next) panelState.open(); else if (config.sheetModal) panelState.close(); }}
           modal={config.sheetModal}
         >
           <SheetContent
@@ -675,13 +676,13 @@ function Panel() {
         </div>
       )}
 
-      {!open && (
+      {showToggleButton && !open && (
         <div data-nfp className={cn(themeClass)}>
           <Button
             variant="outline"
             size="sm"
             className="fixed bottom-4 right-4 z-9999 font-mono gap-1.5 shadow-md dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
-            onClick={() => setOpen(true)}
+            onClick={panelState.open}
           >
             <span className={entries.length > 0 ? "text-green-500" : "text-muted-foreground"}>●</span>
             Server Network
@@ -695,8 +696,24 @@ function Panel() {
   );
 }
 
-export default function DevNetworkPanel({ enabled = true }: { enabled?: boolean }) {
+export function useDevNetworkPanel() {
+  const isOpen = useSyncExternalStore(panelState.subscribe, panelState.getSnapshot, () => false);
+  return {
+    isOpen,
+    open: panelState.open,
+    close: panelState.close,
+    toggle: panelState.toggle,
+  };
+}
+
+export default function DevNetworkPanel({
+  enabled = true,
+  showToggleButton = true,
+}: {
+  enabled?: boolean;
+  showToggleButton?: boolean;
+}) {
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   if (!enabled || !mounted) return null;
-  return createPortal(<Panel />, document.body);
+  return createPortal(<Panel showToggleButton={showToggleButton} />, document.body);
 }
