@@ -678,6 +678,7 @@ function Panel({ showToggleButton, buttonPosition }: { showToggleButton: boolean
         if (seenIdsRef.current.has(entry.id)) return;
         seenIdsRef.current.add(entry.id);
         setEntries((prev) => {
+          if (prev.some((e) => e.id === entry.id)) return prev;
           const next = [...prev, entry];
           return next.length > MAX_ENTRIES ? next.slice(-MAX_ENTRIES) : next;
         });
