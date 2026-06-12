@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.2] — 2026-06-12
+
+### Fixed
+
+- **Duplicate entries on SSE reconnect** — when the SSE connection was interrupted and re-established (e.g. proxy or load-balancer timeout), the server-side buffer replay re-delivered entries the client had already displayed, causing duplicates in the panel. Fixed with a `seenIdsRef` Set in `Panel.tsx` that tracks received entry IDs and discards re-delivered entries before they reach React state (O(1) lookup per entry).
+
+### Improved
+
+- **SSE keepalive heartbeat** — the SSE handler now sends an SSE comment (`: ping`) every 15 seconds. Proxies and load balancers close idle connections when no data flows; the heartbeat prevents spurious reconnects in self-hosted and cloud deployments without any client-side changes.
+
+### Internal
+
+- `BUFFER_SIZE` is now exported from `store.ts` and imported by `Panel.tsx`, replacing the previously separate `MAX_ENTRIES = 100` constant. The server buffer cap and the client display cap are now guaranteed to stay in sync.
+
+---
+
 ## [0.4.1] — 2026-06-12
 
 ### Fixed
