@@ -37,6 +37,7 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
       null;
 
     let unsubscribe: (() => void) | undefined;
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
 
     const stream = new ReadableStream({
       start(controller) {
@@ -48,6 +49,12 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
           if (sessionId && entry.sessionId === sessionId) controller.enqueue(encode(entry));
         }
 
+        // SSE comment sent every 15 s — keeps proxies and load balancers from
+        // closing idle connections before the client disconnects.
+        heartbeat = setInterval(() => {
+          try { controller.enqueue(encoder.encode(": ping\n\n")); } catch { /* closed */ }
+        }, 15_000);
+
         unsubscribe = devLogStore.subscribe((entry) => {
           if (!sessionId || entry.sessionId !== sessionId) return;
           try {
@@ -58,6 +65,7 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
         });
       },
       cancel() {
+        clearInterval(heartbeat);
         unsubscribe?.();
       },
     });
