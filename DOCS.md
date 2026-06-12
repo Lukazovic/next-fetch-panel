@@ -64,15 +64,18 @@ Server (Node.js runtime)
 │
 └── app/api/dev-network/route.ts ← SSE endpoint (session-scoped)
          │
-         ├── reads x-dev-sid from its own request headers
+         ├── reads x-dev-sid header (or __dev_sid cookie fallback)
          ├── replays only buffer entries matching sessionId
-         └── streams only new entries matching sessionId
+         ├── streams only new entries matching sessionId
+         └── sends ": ping" comment every 15 s (keepalive)
 
 Browser (Client)
 │
 └── src/Panel.tsx               ← "use client" floating panel
          │
+         ├── creates __dev_sid cookie client-side if absent (before EventSource opens)
          ├── EventSource → /api/dev-network  (browser sends __dev_sid cookie automatically)
+         ├── deduplicates replayed entries via seenIdsRef Set (O(1) per entry)
          ├── Renders entries in a resizable table
          ├── Click-to-inspect detail pane (General / Headers / Payload / Response)
          └── localStorage-persisted settings
@@ -126,9 +129,11 @@ The store keeps a ring buffer of the last 100 entries and notifies all subscribe
 `createDevPanelRoute()` returns a `GET` handler for `force-dynamic` routes. When a browser connects:
 
 1. Opens a `ReadableStream`
-2. **Replays** all buffered entries that match the session ID — this ensures requests that happened before the browser's `EventSource` opened are not lost
-3. Subscribes to the store and streams new entries as `data: <json>\n\n` SSE frames filtered by session ID
-4. Unsubscribes when the client disconnects (`cancel()`)
+2. Resolves the session ID from the `x-dev-sid` header, falling back to the `__dev_sid` cookie if the header is absent (e.g. when the middleware matcher excludes `/api/*`)
+3. **Replays** all buffered entries that match the session ID — this ensures requests that happened before the browser's `EventSource` opened are not lost
+4. Starts a 15-second `setInterval` that writes an SSE comment (`: ping\n\n`) to keep the connection alive through proxies and load balancers
+5. Subscribes to the store and streams new entries as `data: <json>\n\n` SSE frames filtered by session ID
+6. On disconnect (`cancel()`): clears the heartbeat interval and unsubscribes from the store
 
 An optional `guard` function runs before the stream opens. Returning a `Response` from it blocks the connection — useful for protecting the endpoint in staging:
 
@@ -196,8 +201,10 @@ if (typeof window === "undefined") {
 
 A `"use client"` component rendered unconditionally inside `RootLayout`. On mount it:
 
+- Creates the `__dev_sid` cookie client-side (via `document.cookie`) if it doesn't already exist — this covers routes excluded from the middleware matcher where neither the server-set cookie nor the `x-dev-sid` header would be available
 - Opens an `EventSource` to `/api/dev-network` (the browser automatically sends the `__dev_sid` cookie)
-- Parses incoming entries and stores them in local state (capped at 100)
+- Deduplicates incoming entries using a `seenIdsRef` (`useRef<Set<string>>`): every received entry ID is checked before being added to state, so buffer replays on SSE reconnect don't produce duplicate rows
+- Parses incoming entries and stores them in local state (capped at `BUFFER_SIZE`, shared with the server-side ring buffer)
 - Renders the panel UI when the user clicks the toggle button
 
 ---
@@ -461,6 +468,12 @@ A naive "clear" would only wipe the client-side React state. On the next page re
 Clearing the server buffer is not an option either — the buffer is a shared singleton. Removing entries for one session would affect other users connected to the same server (relevant in staging environments with multiple concurrent users).
 
 The solution: on clear, `Date.now()` is written to `localStorage` under `next-fetch-panel-cleared-at`. On mount, the panel reads this value into a ref. Every SSE message — including replayed ones — is filtered against it: entries with `ts <= clearedAt` are discarded before reaching React state. The server buffer is never touched, so other users are unaffected.
+
+### Why the SSE heartbeat?
+
+Proxies (nginx, GCP load balancers, Cloudflare) and serverless platforms close idle HTTP connections after a configurable timeout — commonly 30–60 seconds. When the SSE connection is idle (no server-side fetches to stream), the connection is silently dropped. The browser's `EventSource` detects the close and reconnects, triggering a buffer replay that would cause duplicate entries without the deduplication described above.
+
+The handler writes an SSE comment (`: ping\n\n`) every 15 seconds via `setInterval`. Browser `EventSource` implementations ignore SSE comments, so the ping has no effect on the client beyond keeping the TCP connection alive. The interval is cleared in the stream's `cancel()` callback to avoid a leak after the client disconnects.
 
 ### Why `response.clone().text().then(...)` instead of `await response.text()`?
 
