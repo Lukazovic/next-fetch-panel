@@ -249,7 +249,9 @@ if (typeof window === "undefined") {
 export default http;
 ```
 
-No axios configuration change is required — `adapter: 'fetch'` is **not** needed. The interceptors work with any axios adapter and complement `instrumentation.ts`: native `fetch()` calls are captured by the fetch patch, axios calls are captured by the interceptors.
+No axios configuration change is required — `adapter: 'fetch'` is **not** needed. The interceptors work with any axios adapter.
+
+If your project makes server-side requests **only through axios** (no native `fetch()` in Server Components or Route Handlers), you can skip `instrumentation.ts` entirely — the interceptors are sufficient. If you use both, set up `instrumentation.ts` as well so native `fetch()` calls are also captured.
 
 ---
 
