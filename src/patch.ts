@@ -73,6 +73,8 @@ async function getSessionId(): Promise<string | null> {
 export async function registerDevPanel(options?: { redact?: RedactInput; enabled?: boolean }) {
   if (options?.enabled === false) return;
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // Guard against double-patching (e.g. HMR re-running instrumentation.ts in dev mode).
+  if ((globalThis.fetch as typeof globalThis.fetch & { __nfp?: boolean }).__nfp) return;
 
   const { devLogStore } = await import("./store");
   const { redactEntry, resolveRedactConfig } = await import("./redact");
@@ -81,7 +83,7 @@ export async function registerDevPanel(options?: { redact?: RedactInput; enabled
 
   const originalFetch = globalThis.fetch;
 
-  globalThis.fetch = async function patchedFetch(
+  globalThis.fetch = Object.assign(async function patchedFetch(
     input: RequestInfo | URL,
     init?: RequestInit
   ): Promise<Response> {
@@ -149,7 +151,7 @@ export async function registerDevPanel(options?: { redact?: RedactInput; enabled
       }, redactConfig));
       throw err;
     }
-  };
+  }, { __nfp: true });
 }
 
 // For the simple re-export case: export { register } from "./server-network-panel/patch"
