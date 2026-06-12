@@ -649,6 +649,7 @@ function Panel({ showToggleButton, buttonPosition }: { showToggleButton: boolean
   const [settingsOpen, setSettingsOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const clearedAtRef = useRef<number>(Number(localStorage.getItem(CLEARED_AT_KEY)) || 0);
+  const seenIdsRef = useRef<Set<string>>(new Set());
   const { config, update } = usePanelConfig();
   const theme = useEffectiveTheme(config.colorScheme);
   const isDark = theme === "dark";
@@ -674,6 +675,8 @@ function Panel({ showToggleButton, buttonPosition }: { showToggleButton: boolean
       try {
         const entry: LogEntry = JSON.parse(event.data);
         if (entry.ts <= clearedAtRef.current) return;
+        if (seenIdsRef.current.has(entry.id)) return;
+        seenIdsRef.current.add(entry.id);
         setEntries((prev) => {
           const next = [...prev, entry];
           return next.length > MAX_ENTRIES ? next.slice(-MAX_ENTRIES) : next;
