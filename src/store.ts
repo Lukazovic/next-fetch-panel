@@ -14,7 +14,7 @@ export type LogEntry = {
   sessionId: string | null;
 };
 
-const BUFFER_SIZE = 100;
+export const BUFFER_SIZE = 100;
 
 type Subscriber = (entry: LogEntry) => void;
 

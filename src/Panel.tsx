@@ -19,7 +19,7 @@ import {
 } from "./ui/dialog";
 import { Separator } from "./ui/separator";
 import { Label } from "./ui/label";
-import type { LogEntry } from "./store";
+import { BUFFER_SIZE, type LogEntry } from "./store";
 
 type PanelMode = "sheet" | "fixed";
 type SheetSide = "bottom" | "right" | "left" | "top";
@@ -87,7 +87,7 @@ function useEffectiveTheme(colorScheme: ColorScheme): "light" | "dark" {
   return systemDark ? "dark" : "light";
 }
 
-const MAX_ENTRIES = 100;
+const MAX_ENTRIES = BUFFER_SIZE;
 
 const METHOD_COLORS: Record<string, string> = {
   GET: "text-blue-400", POST: "text-violet-400",
