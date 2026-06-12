@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.3] — 2026-06-12
+
+### Fixed
+
+- **Duplicate entries from double-patching** — if `registerDevPanel()` was called more than once (e.g. HMR re-running `instrumentation.ts` in development), `globalThis.fetch` was patched twice and every request generated two entries with distinct IDs, which client-side deduplication could not catch. A `__nfp` flag is now set on the patched function so subsequent calls are a no-op.
+
+- **Same-ID entries appearing twice in the panel** — `seenIdsRef` is an O(1) fast-path but can miss duplicates if the ref is in a transitional state (e.g. React Strict Mode's simulated remount). A `prev.some()` guard inside the `setEntries` updater now ensures the same entry ID can never appear twice in state regardless of how the entry arrived.
+
+---
+
 ## [0.4.2] — 2026-06-12
 
 ### Fixed
