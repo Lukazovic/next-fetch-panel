@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1] — 2026-06-12
+
+### Fixed
+
+- **Session isolation regression** — when a project's middleware matcher excluded `/api/*` routes, the SSE endpoint never received the `x-dev-sid` header, causing all sessions to share the same `null` session ID and see each other's requests. The fix adds a dual mechanism: the `__dev_sid` cookie (now non-`httpOnly`) is read directly as a fallback in `patch.ts`, `interceptor.ts`, and `route.ts` whenever the header is absent. `Panel.tsx` also creates the cookie client-side before the `EventSource` connection opens, guaranteeing a session ID even when middleware is not configured. A null guard in the SSE handler prevents `null === null` from leaking entries across sessions.
+
+---
+
 ## [0.4.0] — 2026-06-11
 
 ### Added
