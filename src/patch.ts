@@ -21,16 +21,21 @@ function extractRequestBody(init?: RequestInit): string | null {
   return "[binary]";
 }
 
-// Cached reference — imported once, called per-request to read from the current ALS context.
+// Cached references — imported once, called per-request to read from the current ALS context.
 let nextHeaders: typeof import("next/headers")["headers"] | null = null;
+let nextCookies: typeof import("next/headers")["cookies"] | null = null;
 
 async function getSessionId(): Promise<string | null> {
   try {
     if (!nextHeaders) {
       const mod = await import("next/headers");
       nextHeaders = mod.headers;
+      nextCookies = mod.cookies;
     }
-    return (await nextHeaders()).get("x-dev-sid");
+    // Header set by middleware; cookie fallback covers routes excluded from the matcher.
+    return (await nextHeaders()).get("x-dev-sid")
+      ?? (await nextCookies!()).get("__dev_sid")?.value
+      ?? null;
   } catch {
     // Called outside a Next.js request context (startup, background tasks, etc.)
     return null;

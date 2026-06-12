@@ -5,6 +5,7 @@ const BODY_LIMIT = 50_000;
 
 // Cached after first import — module resolution is async but the reference is reused.
 let nextHeaders: typeof import("next/headers")["headers"] | null = null;
+let nextCookies: typeof import("next/headers")["cookies"] | null = null;
 
 function stringify(data: unknown): string | null {
   if (data == null) return null;
@@ -46,8 +47,12 @@ async function push(
     if (!nextHeaders) {
       const mod = await import("next/headers");
       nextHeaders = mod.headers;
+      nextCookies = mod.cookies;
     }
-    sessionId = (await nextHeaders()).get("x-dev-sid");
+    sessionId =
+      (await nextHeaders()).get("x-dev-sid") ??
+      (await nextCookies!()).get("__dev_sid")?.value ??
+      null;
   } catch {}
 
   try {

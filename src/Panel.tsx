@@ -664,6 +664,11 @@ function Panel({ showToggleButton, buttonPosition }: { showToggleButton: boolean
   }, []);
 
   useEffect(() => {
+    // Fallback: create the session cookie if middleware didn't (e.g. /api/* excluded from matcher).
+    if (!document.cookie.split("; ").some((c) => c.startsWith("__dev_sid="))) {
+      document.cookie = `__dev_sid=${crypto.randomUUID()}; path=/; samesite=lax; max-age=31536000`;
+    }
+
     const es = new EventSource("/api/dev-network");
     es.onmessage = (event) => {
       try {

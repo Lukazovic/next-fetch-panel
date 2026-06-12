@@ -142,11 +142,13 @@ export const GET = createDevPanelRoute({
 
 ### 4. Session Isolation (`src/middleware.ts` + `x-dev-sid` header)
 
-Every browser session gets a unique ID (`__dev_sid` cookie, generated on first visit, valid for one year). `withDevPanel()` runs on every request, reads or creates this cookie, and **forwards it as the `x-dev-sid` request header**. Forwarding as a header is necessary because:
+Every browser session gets a unique ID via the `__dev_sid` cookie (generated on first visit, valid for one year). Session isolation relies on two cooperating mechanisms:
 
-- `headers()` from `next/headers` reads the **incoming request headers**, not cookies. The header is available immediately, even on the very first page load before the `Set-Cookie` response is sent back.
-- Our patched `globalThis.fetch` runs in the same async context as the Server Component that called it. Because Next.js propagates its request context via `AsyncLocalStorage`, `headers()` works inside the patch, letting us read `x-dev-sid` and tag every `LogEntry` with `sessionId`.
-- The SSE connection at `/api/dev-network` also goes through middleware, so its own request has `x-dev-sid` set. The handler reads this header and only replays/streams entries whose `sessionId` matches the connecting client.
+**Primary — `x-dev-sid` request header (set by middleware):** `withDevPanel()` reads or creates the cookie and forwards its value as `x-dev-sid` via `NextResponse.next({ request: { headers: ... } })`. This header is available immediately in `headers()` from `next/headers` — even on the very first page load, before `Set-Cookie` reaches the browser. The server-side fetch interceptors read it via `AsyncLocalStorage` to tag every `LogEntry` with a `sessionId`.
+
+**Fallback — `__dev_sid` cookie read directly:** When middleware does not run for a route (for example, `/api/*` excluded from a custom matcher), `x-dev-sid` is never set. Both the fetch interceptors and the SSE handler fall back to reading `__dev_sid` from `cookies()`. The cookie is not `httpOnly` so that `Panel.tsx` can also create it client-side — in a `useEffect`, before the `EventSource` connection opens — in cases where even the fallback cookie doesn't exist yet.
+
+**Null guard:** if neither mechanism produces a session ID (startup fetches, background jobs, or the very first render before any cookie exists), entries are stored with `sessionId: null`. The SSE handler guards against `null === null` matching, so null-tagged entries are never streamed to any browser.
 
 The result: each browser sees only the server-side fetches it triggered, even in a multi-user staging environment.
 
@@ -464,11 +466,13 @@ The solution: on clear, `Date.now()` is written to `localStorage` under `next-fe
 
 `fetch()` response bodies are single-use streams. Reading the body would consume it, making the response unusable by the caller. `.clone()` creates an independent copy of the stream for reading, leaving the original intact.
 
-### Session isolation: why `x-dev-sid` header and not just the cookie
+### Session isolation: why both `x-dev-sid` header and the cookie
 
-Middleware can set cookies in the **response**, not the request. On the very first visit, the `__dev_sid` cookie does not exist when the incoming request arrives. If we relied solely on `cookies()` in the patched fetch, the first page load's server-side fetches would have no session ID.
+Middleware can set cookies only in the **response** — they arrive at the browser after the page render, not before. On the very first visit the `__dev_sid` cookie does not exist when the incoming request arrives, so reading `cookies()` inside the fetch patch would yield null and miss that page's requests.
 
-Forwarding the session ID as an **`x-dev-sid` request header** (via `NextResponse.next({ request: { headers: ... } })`) solves this: the header is present on the incoming request from the very first visit, regardless of whether the cookie has been seen before. The SSE connection always happens after the first response is received, so by the time it opens, the cookie is already set and middleware includes `x-dev-sid` on that request too.
+Forwarding the session ID as an **`x-dev-sid` request header** (via `NextResponse.next({ request: { headers: ... } })`) solves the first-visit case: the header is present on the incoming request immediately, regardless of whether the cookie exists yet.
+
+However, when middleware does not run for a route (e.g. a custom matcher that excludes `/api/*`), neither the `x-dev-sid` header nor a server-set cookie are available for those requests. The fallback is the `__dev_sid` cookie itself, read directly via `cookies()`. To guarantee the cookie exists before the `EventSource` connection opens, `Panel.tsx` creates it client-side in a `useEffect` if middleware hasn't done so yet. The cookie is not `httpOnly` specifically to allow this client-side creation.
 
 ### Why `headers()` works inside `globalThis.fetch`
 

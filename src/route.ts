@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { devLogStore } from "./store";
 
 export const dynamic = "force-dynamic";
@@ -29,9 +29,12 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
     const blocked = await options?.guard?.(request);
     if (blocked instanceof Response) return blocked;
 
-    // Middleware sets x-dev-sid on every request from the same browser session,
-    // so each client only receives its own server-side fetches.
-    const sessionId = (await headers()).get("x-dev-sid");
+    // Header set by middleware; cookie fallback covers SSE routes excluded from the matcher.
+    // Null guard prevents null === null matching across sessions when neither is available.
+    const sessionId =
+      (await headers()).get("x-dev-sid") ??
+      (await cookies()).get("__dev_sid")?.value ??
+      null;
 
     let unsubscribe: (() => void) | undefined;
 
@@ -42,11 +45,11 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
           encoder.encode(`data: ${JSON.stringify(entry)}\n\n`);
 
         for (const entry of devLogStore.getBuffer()) {
-          if (entry.sessionId === sessionId) controller.enqueue(encode(entry));
+          if (sessionId && entry.sessionId === sessionId) controller.enqueue(encode(entry));
         }
 
         unsubscribe = devLogStore.subscribe((entry) => {
-          if (entry.sessionId !== sessionId) return;
+          if (!sessionId || entry.sessionId !== sessionId) return;
           try {
             controller.enqueue(encode(entry));
           } catch {

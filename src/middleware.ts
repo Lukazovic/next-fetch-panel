@@ -63,8 +63,8 @@ export function withDevPanel<TRequest = NextRequest>(
     }
 
     if (!existing) {
+      // Not httpOnly — Panel.tsx reads and creates this cookie client-side when middleware doesn't run for the route.
       response.cookies.set("__dev_sid", sid, {
-        httpOnly: true,
         sameSite: "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 365,
