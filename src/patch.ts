@@ -1,6 +1,5 @@
 import type { RedactInput } from "./redact";
-
-const BODY_LIMIT = 50_000;
+import { BODY_LIMIT } from "./store";
 
 function headersToObject(headers: HeadersInit | undefined): Record<string, string> {
   if (!headers) return {};

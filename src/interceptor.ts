@@ -1,7 +1,5 @@
-import { devLogStore } from "./store";
+import { devLogStore, BODY_LIMIT } from "./store";
 import { redactEntry, resolveRedactConfig, type RedactInput } from "./redact";
-
-const BODY_LIMIT = 50_000;
 
 // Cached after first import — module resolution is async but the reference is reused.
 let nextHeaders: typeof import("next/headers")["headers"] | null = null;
