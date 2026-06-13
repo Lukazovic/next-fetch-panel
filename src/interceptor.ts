@@ -1,15 +1,15 @@
-import { devLogStore, BODY_LIMIT } from "./store";
+import { devLogStore, BODY_LIMIT as DEFAULT_BODY_LIMIT } from "./store";
 import { redactEntry, resolveRedactConfig, type RedactInput } from "./redact";
 
 // Cached after first import — module resolution is async but the reference is reused.
 let nextHeaders: typeof import("next/headers")["headers"] | null = null;
 let nextCookies: typeof import("next/headers")["cookies"] | null = null;
 
-function stringify(data: unknown): string | null {
+function stringify(data: unknown, bodyLimit: number): string | null {
   if (data == null) return null;
-  if (typeof data === "string") return data.slice(0, BODY_LIMIT);
+  if (typeof data === "string") return data.slice(0, bodyLimit);
   try {
-    return JSON.stringify(data).slice(0, BODY_LIMIT);
+    return JSON.stringify(data).slice(0, bodyLimit);
   } catch {
     return null;
   }
@@ -122,7 +122,7 @@ function resolveUrl(config: Record<string, unknown>): string {
  *   createDevPanelAxiosInterceptors({ redact: (d) => ({ ...d, bodyKeys: [...d.bodyKeys, "my_field"] }) })
  *   createDevPanelAxiosInterceptors({ redact: { headers: [] } })  // disable header redaction
  */
-export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput; enabled?: boolean }) {
+export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput; enabled?: boolean; bodyLimit?: number }) {
   if (options?.enabled === false) {
     return {
       request: <T>(config: T) => config,
@@ -132,6 +132,7 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
   }
 
   const redactConfig = resolveRedactConfig(options?.redact);
+  const bodyLimit = options?.bodyLimit ?? DEFAULT_BODY_LIMIT;
   const timings = new WeakMap<object, Timing>();
 
   function request<T extends object>(config: T): T {
@@ -159,8 +160,8 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
         statusText: r.statusText as string | null,
         requestHeaders: flattenHeaders((config as Record<string, unknown>).headers),
         responseHeaders: flattenHeaders(r.headers),
-        requestBody: stringify((config as Record<string, unknown>).data),
-        responseBody: stringify(r.data),
+        requestBody: stringify((config as Record<string, unknown>).data, bodyLimit),
+        responseBody: stringify(r.data, bodyLimit),
       }, redactConfig);
     }
     return res;
@@ -185,8 +186,8 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
             error: e.message as string | undefined,
             requestHeaders: flattenHeaders((config as Record<string, unknown>).headers),
             responseHeaders: flattenHeaders(errResponse?.headers),
-            requestBody: stringify((config as Record<string, unknown>).data),
-            responseBody: stringify(errResponse?.data),
+            requestBody: stringify((config as Record<string, unknown>).data, bodyLimit),
+            responseBody: stringify(errResponse?.data, bodyLimit),
           }, redactConfig);
         }
       }

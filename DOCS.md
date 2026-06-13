@@ -11,6 +11,7 @@ For integration instructions, see [README.md](./README.md).
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [How It Works](#how-it-works)
+- [Capture Limits](#capture-limits)
 - [Redacting Secrets](#redacting-secrets)
 - [Disabling per Environment](#disabling-per-environment)
 - [Programmatic Control](#programmatic-control)
@@ -91,9 +92,9 @@ Browser (Client)
 
 - Runs only in the `nodejs` runtime (skips Edge via `NEXT_RUNTIME !== "nodejs"`)
 - Replaces `globalThis.fetch` with a wrapper that:
-  - Captures method, URL, request headers, and request body (up to 50 KB)
+  - Captures method, URL, request headers, and request body (truncated at `bodyLimit`, default 100 KB)
   - Awaits the original fetch, then **clones** the response to read the body asynchronously without consuming the original stream
-  - Records status, status text, response headers, response body (up to 50 KB), and duration
+  - Records status, status text, response headers, response body (truncated at `bodyLimit`), and duration
   - On network error: records the error message and pushes a partial entry
   - Reads `sessionId` via `headers()` from `next/headers` (see [why this works](#why-headers-works-inside-globalthistfetch))
   - Calls `redactEntry()` on the collected data before pushing to the store
@@ -122,7 +123,7 @@ type LogEntry = {
 };
 ```
 
-The store keeps a ring buffer of the last 100 entries and notifies all subscribers on `push()`.
+The store keeps a ring buffer of the last 100 entries (configurable via `bufferSize` on `registerDevPanel`) and notifies all subscribers on `push()`. The `configure({ bufferSize })` method updates the limit live and trims the buffer immediately if it is over the new limit.
 
 ### 3. SSE Endpoint (`src/route.ts`)
 
@@ -197,14 +198,41 @@ if (typeof window === "undefined") {
 
 `adapter: 'fetch'` is **not** required — the interceptors work with any axios adapter. They directly call `devLogStore.push()`, bypassing the fetch patch entirely, so they capture axios requests regardless of which adapter is in use.
 
-### 6. Client Panel (`src/Panel.tsx`)
+### 6. Capture Limits
+
+Two constants in `src/store.ts` define the defaults:
+
+| Constant | Default | Description |
+|----------|---------|-------------|
+| `BODY_LIMIT` | `100_000` (100 KB) | Maximum bytes captured from request and response bodies |
+| `BUFFER_SIZE` | `100` | Maximum entries kept in the server-side ring buffer |
+
+Both are exported and can be overridden at runtime:
+
+```ts
+// instrumentation.ts
+await registerDevPanel({
+  bodyLimit:  200_000,  // bytes per body (request and response)
+  bufferSize: 200,      // entries in the server-side ring buffer
+});
+
+// axios client — bodyLimit only; buffer is shared with the fetch patch
+createDevPanelAxiosInterceptors({ bodyLimit: 200_000 });
+
+// Panel — keeps the client display cap in sync with the server buffer
+<DevNetworkPanel bufferSize={200} />
+```
+
+`bodyLimit` truncates captured bodies before they are stored — it does not affect the actual HTTP request or response. `bufferSize` on `registerDevPanel` calls `devLogStore.configure({ bufferSize })` immediately, which also trims the buffer if it already contains more entries than the new limit.
+
+### 7. Client Panel (`src/Panel.tsx`)
 
 A `"use client"` component rendered unconditionally inside `RootLayout`. On mount it:
 
 - Creates the `__dev_sid` cookie client-side (via `document.cookie`) if it doesn't already exist — this covers routes excluded from the middleware matcher where neither the server-set cookie nor the `x-dev-sid` header would be available
 - Opens an `EventSource` to `/api/dev-network` (the browser automatically sends the `__dev_sid` cookie)
 - Deduplicates incoming entries using a `seenIdsRef` (`useRef<Set<string>>`): every received entry ID is checked before being added to state, so buffer replays on SSE reconnect don't produce duplicate rows
-- Parses incoming entries and stores them in local state (capped at `BUFFER_SIZE`, shared with the server-side ring buffer)
+- Parses incoming entries and stores them in local state (capped at the `bufferSize` prop, default `BUFFER_SIZE = 100` — keep it in sync with the `bufferSize` passed to `registerDevPanel`)
 - Renders the panel UI when the user clicks the toggle button
 
 ---

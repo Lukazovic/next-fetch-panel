@@ -12,11 +12,11 @@ function headersToObject(headers: HeadersInit | undefined): Record<string, strin
   return headers as Record<string, string>;
 }
 
-function extractRequestBody(init?: RequestInit): string | null {
+function extractRequestBody(init: RequestInit | undefined, bodyLimit: number): string | null {
   const body = init?.body;
   if (body == null) return null;
-  if (typeof body === "string") return body.slice(0, BODY_LIMIT);
-  if (body instanceof URLSearchParams) return body.toString().slice(0, BODY_LIMIT);
+  if (typeof body === "string") return body.slice(0, bodyLimit);
+  if (body instanceof URLSearchParams) return body.toString().slice(0, bodyLimit);
   return "[binary]";
 }
 
@@ -69,7 +69,12 @@ async function getSessionId(): Promise<string | null> {
  *   // disable a category
  *   await registerDevPanel({ redact: { headers: [] } })
  */
-export async function registerDevPanel(options?: { redact?: RedactInput; enabled?: boolean }) {
+export async function registerDevPanel(options?: {
+  redact?: RedactInput;
+  enabled?: boolean;
+  bodyLimit?: number;
+  bufferSize?: number;
+}) {
   if (options?.enabled === false) return;
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   // Guard against double-patching (e.g. HMR re-running instrumentation.ts in dev mode).
@@ -79,6 +84,9 @@ export async function registerDevPanel(options?: { redact?: RedactInput; enabled
   const { redactEntry, resolveRedactConfig } = await import("./redact");
 
   const redactConfig = resolveRedactConfig(options?.redact);
+  const bodyLimit = options?.bodyLimit ?? BODY_LIMIT;
+
+  if (options?.bufferSize !== undefined) devLogStore.configure({ bufferSize: options.bufferSize });
 
   const originalFetch = globalThis.fetch;
 
@@ -106,7 +114,7 @@ export async function registerDevPanel(options?: { redact?: RedactInput; enabled
     const ts = Date.now();
     const id = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
     const requestHeaders = headersToObject(init?.headers);
-    const requestBody = extractRequestBody(init);
+    const requestBody = extractRequestBody(init, bodyLimit);
 
     // Read session ID from the current request's async context before starting the timer.
     const sessionId = await getSessionId();
@@ -125,7 +133,7 @@ export async function registerDevPanel(options?: { redact?: RedactInput; enabled
           id, url, method, ts, duration, error: undefined,
           status: response.status, statusText: response.statusText,
           requestHeaders, responseHeaders,
-          requestBody, responseBody: text.slice(0, BODY_LIMIT),
+          requestBody, responseBody: text.slice(0, bodyLimit),
           sessionId,
         }, redactConfig)),
         () => devLogStore.push(redactEntry({

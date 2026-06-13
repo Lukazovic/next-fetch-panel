@@ -227,6 +227,30 @@ The actual HTTP request is never modified — only the copy kept for display.
 
 ---
 
+## Capture limits
+
+By default, request and response bodies are capped at **100 KB** and the server keeps the last **100 entries** in memory. Both limits are configurable:
+
+```ts
+// instrumentation.ts
+await registerDevPanel({
+  bodyLimit:  200_000,  // bytes — applies to request and response bodies (default: 100_000)
+  bufferSize: 200,      // entries kept in the server-side ring buffer (default: 100)
+});
+
+// axios client
+createDevPanelAxiosInterceptors({
+  bodyLimit: 200_000,   // same option, independent from the fetch patch
+});
+
+// app/layout.tsx — keep in sync with bufferSize above
+<DevNetworkPanel bufferSize={200} />
+```
+
+`bufferSize` on `<DevNetworkPanel>` controls how many entries the panel displays. Keep it in sync with the `bufferSize` passed to `registerDevPanel` so the server buffer and the client display cap match.
+
+---
+
 ## Using axios
 
 Register the dev panel interceptors **before** your own interceptors. Use a synchronous `require()` so they run first in the response chain:

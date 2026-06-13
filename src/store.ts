@@ -23,6 +23,7 @@ type DevLogStore = {
   push(entry: LogEntry): void;
   subscribe(fn: Subscriber): () => void;
   getBuffer(): LogEntry[];
+  configure(options: { bufferSize: number }): void;
 };
 
 declare global {
@@ -33,10 +34,11 @@ declare global {
 function createStore(): DevLogStore {
   const subscribers = new Set<Subscriber>();
   const buffer: LogEntry[] = [];
+  let limit = BUFFER_SIZE;
   return {
     push(entry) {
       buffer.push(entry);
-      if (buffer.length > BUFFER_SIZE) buffer.shift();
+      if (buffer.length > limit) buffer.shift();
       subscribers.forEach((fn) => fn(entry));
     },
     subscribe(fn) {
@@ -45,6 +47,10 @@ function createStore(): DevLogStore {
     },
     getBuffer() {
       return buffer.slice();
+    },
+    configure({ bufferSize }) {
+      limit = bufferSize;
+      while (buffer.length > limit) buffer.shift();
     },
   };
 }

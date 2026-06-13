@@ -87,7 +87,6 @@ function useEffectiveTheme(colorScheme: ColorScheme): "light" | "dark" {
   return systemDark ? "dark" : "light";
 }
 
-const MAX_ENTRIES = BUFFER_SIZE;
 
 const METHOD_COLORS: Record<string, string> = {
   GET: "text-blue-400", POST: "text-violet-400",
@@ -642,7 +641,7 @@ const FIXED_PANEL_POSITION_CLASSES: Record<ButtonPosition, string> = {
   "top-left":     "top-14 left-4",
 };
 
-function Panel({ showToggleButton, buttonPosition }: { showToggleButton: boolean; buttonPosition: ButtonPosition }) {
+function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleButton: boolean; buttonPosition: ButtonPosition; bufferSize: number }) {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const open = useSyncExternalStore(panelState.subscribe, panelState.getSnapshot, () => false);
   const [selected, setSelected] = useState<LogEntry | null>(null);
@@ -680,7 +679,7 @@ function Panel({ showToggleButton, buttonPosition }: { showToggleButton: boolean
         setEntries((prev) => {
           if (prev.some((e) => e.id === entry.id)) return prev;
           const next = [...prev, entry];
-          return next.length > MAX_ENTRIES ? next.slice(-MAX_ENTRIES) : next;
+          return next.length > bufferSize ? next.slice(-bufferSize) : next;
         });
       } catch { /* ignore */ }
     };
@@ -815,15 +814,17 @@ export default function DevNetworkPanel({
   enabled = true,
   showToggleButton = true,
   buttonPosition = "bottom-right",
+  bufferSize = BUFFER_SIZE,
 }: {
   enabled?: boolean;
   showToggleButton?: boolean;
   buttonPosition?: ButtonPosition;
+  bufferSize?: number;
 }) {
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   if (!enabled || !mounted) return null;
   return createPortal(
-    <Panel showToggleButton={showToggleButton} buttonPosition={buttonPosition} />,
+    <Panel showToggleButton={showToggleButton} buttonPosition={buttonPosition} bufferSize={bufferSize} />,
     document.body
   );
 }
