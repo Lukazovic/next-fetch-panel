@@ -418,8 +418,22 @@ In sheet mode, a thin drag strip is placed at the open edge of the sheet (top ed
 | Status | Color-coded (2xx = green, 3xx = amber, 4xx/5xx/error = red) |
 | URL | Truncated to available width |
 | Duration | Milliseconds |
+| Actions | Per-entry dropdown menu (see below) |
 
 Click any row to open the detail pane. Click the same row again to close it.
+
+#### Row Actions
+
+Each row has an **⋯** button at the right that opens a dropdown with the following actions:
+
+| Action | Description |
+|--------|-------------|
+| **Copy as cURL** | Copies a ready-to-run `curl` command to the clipboard, including method, URL, request headers, and body (with single-quote escaping). The trigger icon briefly turns green to confirm. |
+| **Download response body** | Downloads the captured response body as `.json` or `.txt`. Only shown when a response body was captured. |
+| **Download request body** | Downloads the captured request body as `.json` or `.txt`. Only shown when a request body was captured and is not binary. |
+| **Download full request data** | Downloads the complete `LogEntry` as a `.json` file, including URL, method, status, headers, both bodies, timing, and session metadata. |
+
+Clicking action buttons does not select or deselect the row.
 
 ### Filter Bar
 

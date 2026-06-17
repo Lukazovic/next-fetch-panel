@@ -1,11 +1,11 @@
 "use client";
 
 import panelStyles from "./panel.styles";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { panelState } from "./panel-state";
 import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
-import { SearchIcon, Settings2Icon, XIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, DownloadIcon, EllipsisIcon, SearchIcon, Settings2Icon, XIcon } from "lucide-react";
 import { cn } from "./utils";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -20,6 +20,9 @@ import {
 import { Separator } from "./ui/separator";
 import { Label } from "./ui/label";
 import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "./store";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+
+const PanelThemeContext = createContext<string>("nfp-theme-light");
 
 type PanelMode = "sheet" | "fixed";
 type SheetSide = "bottom" | "right" | "left" | "top";
@@ -136,6 +139,81 @@ function downloadBody(body: string, filename: string) {
   a.download = `${filename}.${isJson ? "json" : "txt"}`;
   a.click();
   URL.revokeObjectURL(href);
+}
+
+function toCurl(entry: LogEntry): string {
+  const parts = [`curl -X ${entry.method} '${entry.url.replace(/'/g, "'\\''")}'`];
+  for (const [k, v] of Object.entries(entry.requestHeaders ?? {})) {
+    parts.push(`  -H '${k}: ${v.replace(/'/g, "'\\''")}'`);
+  }
+  if (entry.requestBody && entry.requestBody !== "[binary]") {
+    parts.push(`  --data-raw '${entry.requestBody.replace(/'/g, "'\\''")}'`);
+  }
+  return parts.join(" \\\n");
+}
+
+function downloadEntry(entry: LogEntry) {
+  const blob = new Blob([JSON.stringify(entry, null, 2)], { type: "application/json" });
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href;
+  let name = "entry";
+  try { name = new URL(entry.url).pathname.split("/").filter(Boolean).pop() || "entry"; } catch {}
+  a.download = `${name}-entry.json`;
+  a.click();
+  URL.revokeObjectURL(href);
+}
+
+function EntryActionsMenu({ entry }: { entry: LogEntry }) {
+  const themeClass = useContext(PanelThemeContext);
+  const [copied, setCopied] = useState(false);
+
+  let downloadName = "entry";
+  try { downloadName = new URL(entry.url).pathname.split("/").filter(Boolean).pop() || "entry"; } catch {}
+
+  function handleCopyCurl() {
+    navigator.clipboard.writeText(toCurl(entry)).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        title="Actions"
+        className={cn(
+          "rounded p-0.5 transition-colors",
+          copied ? "text-green-500" : "text-muted-foreground hover:text-foreground"
+        )}
+      >
+        {copied ? <CheckIcon className="size-3.5" /> : <EllipsisIcon className="size-3.5" />}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent data-nfp="" className={themeClass}>
+        <DropdownMenuItem onClick={handleCopyCurl}>
+          <CopyIcon className="size-3 shrink-0" />
+          Copy as cURL
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {entry.responseBody && (
+          <DropdownMenuItem onClick={() => downloadBody(entry.responseBody!, `${downloadName}-response`)}>
+            <DownloadIcon className="size-3 shrink-0" />
+            Download response body
+          </DropdownMenuItem>
+        )}
+        {entry.requestBody && entry.requestBody !== "[binary]" && (
+          <DropdownMenuItem onClick={() => downloadBody(entry.requestBody!, `${downloadName}-request`)}>
+            <DownloadIcon className="size-3 shrink-0" />
+            Download request body
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={() => downloadEntry(entry)}>
+          <DownloadIcon className="size-3 shrink-0" />
+          Download full request data
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 function OptionButton({
@@ -571,6 +649,7 @@ function PanelInner({
                     { label: "Status",   cls: "w-[52px] text-left"  },
                     { label: "URL",      cls: "text-left"           },
                     { label: "Duration", cls: "w-[68px] text-right" },
+                    { label: "",         cls: "w-[52px]"            },
                   ].map(({ label, cls }) => (
                     <th key={label} className={cn("px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap", cls)}>
                       {label}
@@ -581,7 +660,7 @@ function PanelInner({
               <tbody>
                 {filteredEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                    <td colSpan={5} className="py-6 text-center text-muted-foreground">
                       {filter ? "No requests match the filter" : "No requests yet"}
                     </td>
                   </tr>
@@ -611,6 +690,9 @@ function PanelInner({
                         </td>
                         <td className="px-2.5 py-1.25 text-right whitespace-nowrap text-muted-foreground">
                           {entry.duration}ms
+                        </td>
+                        <td className="px-2 py-1.25 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <EntryActionsMenu entry={entry} />
                         </td>
                       </tr>
                     );
@@ -824,7 +906,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
   const themeClass = isDark ? "nfp-theme-dark dark" : "nfp-theme-light";
 
   return (
-    <>
+    <PanelThemeContext.Provider value={themeClass}>
       <SettingsDialog
         config={config} update={update}
         open={settingsOpen} onOpenChange={setSettingsOpen}
@@ -902,7 +984,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
           </Button>
         </div>
       )}
-    </>
+    </PanelThemeContext.Provider>
   );
 }
 
