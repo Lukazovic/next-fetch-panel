@@ -11,6 +11,8 @@ export type LogEntry = {
   responseHeaders: Record<string, string>;
   requestBody: string | null;
   responseBody: string | null;
+  requestBodyTruncated?: boolean;
+  responseBodyTruncated?: boolean;
   sessionId: string | null;
 };
 

@@ -12,12 +12,15 @@ function headersToObject(headers: HeadersInit | undefined): Record<string, strin
   return headers as Record<string, string>;
 }
 
-function extractRequestBody(init: RequestInit | undefined, bodyLimit: number): string | null {
-  const body = init?.body;
-  if (body == null) return null;
-  if (typeof body === "string") return body.slice(0, bodyLimit);
-  if (body instanceof URLSearchParams) return body.toString().slice(0, bodyLimit);
-  return "[binary]";
+function extractRequestBody(init: RequestInit | undefined, bodyLimit: number): { body: string | null; truncated: boolean } {
+  const raw = init?.body;
+  if (raw == null) return { body: null, truncated: false };
+  if (typeof raw === "string") return { body: raw.slice(0, bodyLimit), truncated: raw.length > bodyLimit };
+  if (raw instanceof URLSearchParams) {
+    const s = raw.toString();
+    return { body: s.slice(0, bodyLimit), truncated: s.length > bodyLimit };
+  }
+  return { body: "[binary]", truncated: false };
 }
 
 // Cached references — imported once, called per-request to read from the current ALS context.
@@ -114,7 +117,7 @@ export async function registerDevPanel(options?: {
     const ts = Date.now();
     const id = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
     const requestHeaders = headersToObject(init?.headers);
-    const requestBody = extractRequestBody(init, bodyLimit);
+    const { body: requestBody, truncated: requestBodyTruncated } = extractRequestBody(init, bodyLimit);
 
     // Read session ID from the current request's async context before starting the timer.
     const sessionId = await getSessionId();
@@ -134,6 +137,7 @@ export async function registerDevPanel(options?: {
           status: response.status, statusText: response.statusText,
           requestHeaders, responseHeaders,
           requestBody, responseBody: text.slice(0, bodyLimit),
+          requestBodyTruncated, responseBodyTruncated: text.length > bodyLimit,
           sessionId,
         }, redactConfig)),
         () => devLogStore.push(redactEntry({
@@ -141,6 +145,7 @@ export async function registerDevPanel(options?: {
           status: response.status, statusText: response.statusText,
           requestHeaders, responseHeaders,
           requestBody, responseBody: null,
+          requestBodyTruncated, responseBodyTruncated: false,
           sessionId,
         }, redactConfig)),
       );
@@ -154,6 +159,7 @@ export async function registerDevPanel(options?: {
         status: null, statusText: null,
         requestHeaders, responseHeaders: {},
         requestBody, responseBody: null,
+        requestBodyTruncated, responseBodyTruncated: false,
         sessionId,
       }, redactConfig));
       throw err;

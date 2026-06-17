@@ -341,6 +341,25 @@ function BodyViewer({ body, contentType, emptyLabel, downloadName }: {
   );
 }
 
+function BodyTruncatedNotice({ kind, captured, contentLength }: {
+  kind: "Request" | "Response";
+  captured: number;
+  contentLength?: number | null;
+}) {
+  return (
+    <div className="rounded border border-yellow-500/30 bg-yellow-500/5 px-2.5 py-2 flex flex-col gap-1">
+      <p className="text-[11px] font-semibold text-yellow-500">{kind} body truncated</p>
+      <p className="text-[11px] text-muted-foreground">
+        {contentLength != null
+          ? <>~{formatBytes(captured)} of ~{formatBytes(contentLength)} were captured.</>
+          : <>~{formatBytes(captured)} were captured.</>
+        }
+        {" "}Increase <code className="font-mono">bodyLimit</code> in your project config to capture more.
+      </p>
+    </div>
+  );
+}
+
 function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void }) {
   let pathname = entry.url;
   try { pathname = new URL(entry.url).pathname; } catch { /* keep full url */ }
@@ -368,6 +387,19 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
           <TabsContent value="general" className="h-full m-0">
             <ScrollArea className="h-full">
               <div className="flex flex-col gap-3 p-3 text-[11px]">
+                {entry.responseBodyTruncated && (
+                  <BodyTruncatedNotice
+                    kind="Response"
+                    captured={entry.responseBody?.length ?? 0}
+                    contentLength={entry.responseHeaders?.["content-length"] ? Number(entry.responseHeaders["content-length"]) : null}
+                  />
+                )}
+                {entry.requestBodyTruncated && (
+                  <BodyTruncatedNotice
+                    kind="Request"
+                    captured={entry.requestBody?.length ?? 0}
+                  />
+                )}
                 {([
                   ["Request URL",    entry.url],
                   ["Request Method", entry.method],

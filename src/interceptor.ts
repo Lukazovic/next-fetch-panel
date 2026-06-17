@@ -15,6 +15,11 @@ function stringify(data: unknown, bodyLimit: number): string | null {
   }
 }
 
+// A result of exactly bodyLimit chars means the original was at least that long (truncated).
+function wasTruncated(result: string | null, bodyLimit: number): boolean {
+  return result !== null && result.length >= bodyLimit;
+}
+
 function flattenHeaders(headers: unknown): Record<string, string> {
   if (!headers || typeof headers !== "object") return {};
   const result: Record<string, string> = {};
@@ -37,6 +42,8 @@ async function push(
     responseHeaders?: Record<string, string>;
     requestBody?: string | null;
     responseBody?: string | null;
+    requestBodyTruncated?: boolean;
+    responseBodyTruncated?: boolean;
   },
   config: import("./redact").RedactConfig
 ) {
@@ -68,6 +75,8 @@ async function push(
         responseHeaders: entry.responseHeaders ?? {},
         requestBody: entry.requestBody ?? null,
         responseBody: entry.responseBody ?? null,
+        requestBodyTruncated: entry.requestBodyTruncated,
+        responseBodyTruncated: entry.responseBodyTruncated,
         sessionId,
       }, config)
     );
@@ -151,6 +160,8 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
     const t = timings.get(config as object);
     if (t) {
       timings.delete(config as object);
+      const reqBody = stringify((config as Record<string, unknown>).data, bodyLimit);
+      const resBody = stringify(r.data, bodyLimit);
       await push({
         url: t.url,
         method: String((config as Record<string, unknown>).method ?? "GET"),
@@ -160,8 +171,10 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
         statusText: r.statusText as string | null,
         requestHeaders: flattenHeaders((config as Record<string, unknown>).headers),
         responseHeaders: flattenHeaders(r.headers),
-        requestBody: stringify((config as Record<string, unknown>).data, bodyLimit),
-        responseBody: stringify(r.data, bodyLimit),
+        requestBody: reqBody,
+        responseBody: resBody,
+        requestBodyTruncated: wasTruncated(reqBody, bodyLimit),
+        responseBodyTruncated: wasTruncated(resBody, bodyLimit),
       }, redactConfig);
     }
     return res;
@@ -176,6 +189,8 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
         if (t) {
           timings.delete(config as object);
           const errResponse = e.response as Record<string, unknown> | undefined;
+          const reqBody = stringify((config as Record<string, unknown>).data, bodyLimit);
+          const resBody = stringify(errResponse?.data, bodyLimit);
           await push({
             url: t.url,
             method: String((config as Record<string, unknown>).method ?? "GET"),
@@ -186,8 +201,10 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
             error: e.message as string | undefined,
             requestHeaders: flattenHeaders((config as Record<string, unknown>).headers),
             responseHeaders: flattenHeaders(errResponse?.headers),
-            requestBody: stringify((config as Record<string, unknown>).data, bodyLimit),
-            responseBody: stringify(errResponse?.data, bodyLimit),
+            requestBody: reqBody,
+            responseBody: resBody,
+            requestBodyTruncated: wasTruncated(reqBody, bodyLimit),
+            responseBodyTruncated: wasTruncated(resBody, bodyLimit),
           }, redactConfig);
         }
       }
