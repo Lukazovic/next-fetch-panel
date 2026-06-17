@@ -669,21 +669,52 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
       document.cookie = `__dev_sid=${crypto.randomUUID()}; path=/; samesite=lax; max-age=31536000`;
     }
 
-    const es = new EventSource("/api/dev-network");
-    es.onmessage = (event) => {
-      try {
-        const entry: LogEntry = JSON.parse(event.data);
-        if (entry.ts <= clearedAtRef.current) return;
-        if (seenIdsRef.current.has(entry.id)) return;
-        seenIdsRef.current.add(entry.id);
-        setEntries((prev) => {
-          if (prev.some((e) => e.id === entry.id)) return prev;
-          const next = [...prev, entry];
-          return next.length > bufferSize ? next.slice(-bufferSize) : next;
-        });
-      } catch { /* ignore */ }
+    let current: EventSource | null = null;
+    let retryTimeout: ReturnType<typeof setTimeout> | undefined;
+    let retryDelay = 1_000;
+    let destroyed = false;
+
+    function connect() {
+      if (destroyed) return;
+      const es = new EventSource("/api/dev-network");
+      current = es;
+
+      es.onopen = () => { retryDelay = 1_000; };
+
+      es.onmessage = (event) => {
+        try {
+          const entry: LogEntry = JSON.parse(event.data);
+          if (entry.ts <= clearedAtRef.current) return;
+          if (seenIdsRef.current.has(entry.id)) return;
+          seenIdsRef.current.add(entry.id);
+          setEntries((prev) => {
+            if (prev.some((e) => e.id === entry.id)) return prev;
+            const next = [...prev, entry];
+            return next.length > bufferSize ? next.slice(-bufferSize) : next;
+          });
+        } catch { /* ignore */ }
+      };
+
+      es.onerror = () => {
+        // CLOSED = fatal HTTP error (e.g. 503) — browser won't retry automatically.
+        // CONNECTING = browser is already retrying a dropped connection — let it.
+        if (es.readyState === EventSource.CLOSED) {
+          current = null;
+          retryTimeout = setTimeout(() => {
+            retryDelay = Math.min(retryDelay * 2, 30_000);
+            connect();
+          }, retryDelay);
+        }
+      };
+    }
+
+    connect();
+
+    return () => {
+      destroyed = true;
+      clearTimeout(retryTimeout);
+      current?.close();
     };
-    return () => es.close();
   }, []);
 
   function handleClear() {

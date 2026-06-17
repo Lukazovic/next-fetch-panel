@@ -45,6 +45,10 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
         const encode = (entry: unknown) =>
           encoder.encode(`data: ${JSON.stringify(entry)}\n\n`);
 
+        // Sent immediately so proxies with a first-byte timeout (e.g. Varnish) don't
+        // close the connection before the first real data or heartbeat arrives.
+        controller.enqueue(encoder.encode(": connected\n\n"));
+
         for (const entry of devLogStore.getBuffer()) {
           if (sessionId && entry.sessionId === sessionId) controller.enqueue(encode(entry));
         }
