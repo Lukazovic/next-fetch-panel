@@ -167,6 +167,9 @@ function downloadEntry(entry: LogEntry) {
 function EntryActionsMenu({ entry }: { entry: LogEntry }) {
   const themeClass = useContext(PanelThemeContext);
   const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => () => clearTimeout(copiedTimerRef.current), []);
 
   let downloadName = "entry";
   try { downloadName = new URL(entry.url).pathname.split("/").filter(Boolean).pop() || "entry"; } catch {}
@@ -174,7 +177,8 @@ function EntryActionsMenu({ entry }: { entry: LogEntry }) {
   function handleCopyCurl() {
     navigator.clipboard.writeText(toCurl(entry)).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 1500);
     });
   }
 
@@ -469,7 +473,7 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
                   <BodyTruncatedNotice
                     kind="Response"
                     captured={entry.responseBody?.length ?? 0}
-                    contentLength={entry.responseHeaders?.["content-length"] ? Number(entry.responseHeaders["content-length"]) : null}
+                    contentLength={Number.isFinite(Number(entry.responseHeaders?.["content-length"])) ? Number(entry.responseHeaders!["content-length"]) : null}
                   />
                 )}
                 {entry.requestBodyTruncated && (
