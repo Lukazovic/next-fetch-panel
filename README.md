@@ -229,12 +229,12 @@ The actual HTTP request is never modified — only the copy kept for display.
 
 ## Capture limits
 
-By default, request and response bodies are capped at **100 KB** and the server keeps the last **100 entries** in memory. Both limits are configurable:
+By default, request and response bodies are capped at **50 KB** and the server keeps the last **100 entries** in memory. Both limits are configurable:
 
 ```ts
 // instrumentation.ts
 await registerDevPanel({
-  bodyLimit:  200_000,  // bytes — applies to request and response bodies (default: 100_000)
+  bodyLimit:  200_000,  // bytes — applies to request and response bodies (default: 50_000)
   bufferSize: 200,      // entries kept in the server-side ring buffer (default: 100)
 });
 

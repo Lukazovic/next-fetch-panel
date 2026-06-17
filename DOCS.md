@@ -94,7 +94,7 @@ Browser (Client)
 
 - Runs only in the `nodejs` runtime (skips Edge via `NEXT_RUNTIME !== "nodejs"`)
 - Replaces `globalThis.fetch` with a wrapper that:
-  - Captures method, URL, request headers, and request body (truncated at `bodyLimit`, default 100 KB)
+  - Captures method, URL, request headers, and request body (truncated at `bodyLimit`, default 50 KB)
   - Awaits the original fetch, then **clones** the response to read the body asynchronously without consuming the original stream
   - Records status, status text, response headers, response body (truncated at `bodyLimit`), and duration
   - On network error: records the error message and pushes a partial entry
@@ -207,7 +207,7 @@ Two constants in `src/store.ts` define the defaults:
 
 | Constant | Default | Description |
 |----------|---------|-------------|
-| `BODY_LIMIT` | `100_000` (100 KB) | Maximum bytes captured from request and response bodies |
+| `BODY_LIMIT` | `50_000` (50 KB) | Maximum bytes captured from request and response bodies |
 | `BUFFER_SIZE` | `100` | Maximum entries kept in the server-side ring buffer |
 
 Both are exported and can be overridden at runtime:

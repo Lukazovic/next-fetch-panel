@@ -15,7 +15,7 @@ export type LogEntry = {
 };
 
 export const BUFFER_SIZE = 100;
-export const BODY_LIMIT = 100_000;
+export const BODY_LIMIT = 50_000;
 
 type Subscriber = (entry: LogEntry) => void;
 
