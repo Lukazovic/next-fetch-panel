@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.4.4] — 2026-06-13
+
+### Added
+
+- **`bodyLimit` option on `registerDevPanel` and `createDevPanelAxiosInterceptors`** — controls how many bytes of each request/response body are captured before being stored (default: `100_000` / 100 KB). Useful when responses are very large and the default limit truncates them.
+- **`bufferSize` option on `registerDevPanel`** — resizes the server-side ring buffer at runtime (default: `100` entries). Calls `devLogStore.configure()` immediately, trimming the buffer if it already exceeds the new limit.
+- **`bufferSize` prop on `<DevNetworkPanel>`** — keeps the client display cap in sync with the server buffer. Defaults to `BUFFER_SIZE` (100).
+
+### Fixed
+
+- **Duplicate entries on SSE reconnect** — the SSE endpoint now emits an `id:` field with every event. On reconnect, the browser sends `Last-Event-ID` automatically and the server replays only entries that came after that point. Proxy-forced reconnects (e.g. Varnish/Fastly ~10 s idle timeout) no longer produce duplicate rows.
+- **SSE never recovered after HTTP errors (503, 404, etc.)** — the browser's built-in `EventSource` auto-reconnect only handles dropped connections, not non-200 HTTP responses. Added a manual reconnect in `Panel.tsx` with exponential backoff (1 s → 30 s cap) triggered when `readyState === CLOSED` on error.
+- **Varnish/Fastly first-byte timeout** — the SSE handler now sends a `: connected` comment immediately when the stream opens, satisfying proxies that enforce a first-byte timeout before any real data or heartbeat arrives.
+- **Double active border on tab indicator in shadcn projects** — the built-in `::after` pseudo-element active indicator in `TabsTrigger` conflicted with the CSS `box-shadow: inset 0 -2px` approach used by the panel. Removed the `::after` classes to prevent the double line.
+
+### Improved
+
+- **SSE heartbeat reduced from 15 s to 8 s** — stays below common proxy idle timeouts (Varnish/Fastly typically close idle connections around 10 s), reducing unexpected reconnects.
+
+### Internal
+
+- `BODY_LIMIT` is now exported from `store.ts` alongside `BUFFER_SIZE`, making it a single source of truth shared by `patch.ts` and `interceptor.ts`.
+
+---
+
 ## [0.4.3] — 2026-06-12
 
 ### Fixed

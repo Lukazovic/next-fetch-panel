@@ -66,8 +66,9 @@ Server (Node.js runtime)
 └── app/api/dev-network/route.ts ← SSE endpoint (session-scoped)
          │
          ├── reads x-dev-sid header (or __dev_sid cookie fallback)
-         ├── replays only buffer entries matching sessionId
-         ├── streams only new entries matching sessionId
+         ├── reads Last-Event-ID header (sent by browser on reconnect)
+         ├── replays only buffer entries after Last-Event-ID (full replay on fresh connect)
+         ├── streams only new entries matching sessionId (each frame includes id: field)
          └── sends ": ping" comment every 8 s (keepalive)
 
 Browser (Client)
@@ -76,7 +77,8 @@ Browser (Client)
          │
          ├── creates __dev_sid cookie client-side if absent (before EventSource opens)
          ├── EventSource → /api/dev-network  (browser sends __dev_sid cookie automatically)
-         ├── deduplicates replayed entries via seenIdsRef Set (O(1) per entry)
+         ├── on HTTP error (e.g. 503): reconnects manually with exponential backoff (1 s → 30 s)
+         ├── seenIdsRef + prev.some() guard deduplicate any entries that slip through
          ├── Renders entries in a resizable table
          ├── Click-to-inspect detail pane (General / Headers / Payload / Response)
          └── localStorage-persisted settings
@@ -232,7 +234,8 @@ A `"use client"` component rendered unconditionally inside `RootLayout`. On moun
 
 - Creates the `__dev_sid` cookie client-side (via `document.cookie`) if it doesn't already exist — this covers routes excluded from the middleware matcher where neither the server-set cookie nor the `x-dev-sid` header would be available
 - Opens an `EventSource` to `/api/dev-network` (the browser automatically sends the `__dev_sid` cookie)
-- Deduplicates incoming entries using a `seenIdsRef` (`useRef<Set<string>>`): every received entry ID is checked before being added to state, so buffer replays on SSE reconnect don't produce duplicate rows
+- On HTTP error (e.g. 503 from a proxy): closes the `EventSource` and reconnects manually with exponential backoff (starting at 1 s, doubling up to 30 s cap). The browser's built-in auto-reconnect only handles dropped connections, not non-200 HTTP responses.
+- On reconnect the browser sends `Last-Event-ID` automatically; the server uses it to replay only unseen entries, so duplicate rows are prevented at the source. `seenIdsRef` and `prev.some()` remain as client-side safety nets.
 - Parses incoming entries and stores them in local state (capped at the `bufferSize` prop, default `BUFFER_SIZE = 100` — keep it in sync with the `bufferSize` passed to `registerDevPanel`)
 - Renders the panel UI when the user clicks the toggle button
 
