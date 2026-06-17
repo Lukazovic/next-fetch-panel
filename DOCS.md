@@ -591,7 +591,7 @@ packages/next-fetch-panel/
 │   ├── redact.ts       Secret redaction (internal)
 │   ├── utils.ts        cn() utility (internal)
 │   ├── Panel.tsx       "use client" floating panel component
-│   └── ui/             Self-contained copies of shadcn UI components
+│   └── ui/             Self-contained UI components (shadcn-derived + base-ui wrappers)
 ├── dist/               compiled output
 │   ├── index.mjs / index.js / index.d.ts
 │   ├── patch.mjs / patch.js / patch.d.ts

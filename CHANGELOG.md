@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.5.0] — 2026-06-17
+
+### Added
+
+- **Actions dropdown in request table** — each row now has a ⋯ button that opens a per-entry menu:
+  - **Copy as cURL** — copies a ready-to-run `curl` command (method, URL, headers, body with single-quote escaping) to the clipboard. The trigger icon briefly turns green to confirm.
+  - **Download response body** — saves the captured response body as `.json` or `.txt`. Only shown when a response body was captured.
+  - **Download request body** — saves the captured request body as `.json` or `.txt`. Only shown when a request body was captured and is not binary.
+  - **Download full request data** — saves the complete `LogEntry` as a `.json` file (URL, method, status, headers, both bodies, timing, session metadata).
+- **Truncation notices in the General tab** — when a body was cut off at capture time, a yellow warning now appears in the General tab (before the URL field) with approximate sizes and a prompt to increase `bodyLimit`. Detection happens server-side at capture time, so the notice is accurate regardless of the configured `bodyLimit` value.
+- **Render gate for large bodies** — bodies at or above `BODY_LIMIT` (50 KB) in the Payload and Response tabs are no longer rendered immediately. A warning shows the body size and offers two options: **Render anyway** (accepts the risk of a slow render) and **Download** (saves the body without touching the DOM). The gate resets automatically when a different entry is selected.
+- **`requestBodyTruncated` / `responseBodyTruncated` on `LogEntry`** — boolean flags set server-side at capture time. `true` when the body was cut off at `bodyLimit`. Available to external consumers of the SSE stream.
+
+### Fixed
+
+- **Truncation warning showed wrong limit** — the previous client-side check compared `body.length` against a constant, causing false positives when `bodyLimit` was configured larger than the default and the full body was captured. Detection is now done server-side via the new flags.
+- **`BODY_LIMIT` default reverted to 50 KB** — the 0.4.4 release raised it to 100 KB, which caused UI freezes when rendering large bodies. The default is back to `50_000`. Projects that need larger captures can opt in via `bodyLimit`.
+- **`content-length` NaN edge case** — the truncation notice no longer renders "NaN B" if the `content-length` response header contains a non-numeric value.
+- **Copied-state timer leak** — the 1.5 s "green check" feedback timer in the cURL copy button is now cancelled if the row unmounts before it fires.
+
+### Internal
+
+- New `src/ui/dropdown-menu.tsx` — wrapper around `@base-ui/react/menu`, following the same pattern as the other `src/ui/` components.
+- `PanelThemeContext` — React context that propagates the active theme class to portal-rendered components (the dropdown popup) without prop drilling.
+- `extractRequestBody` in `patch.ts` now returns `{ body, truncated }` instead of `string | null`.
+- `wasTruncated(result, bodyLimit)` helper in `interceptor.ts` — avoids calling `stringify()` twice to compute the truncation flag.
+
+---
+
 ## [0.4.4] — 2026-06-13
 
 ### Added
