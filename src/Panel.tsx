@@ -19,7 +19,7 @@ import {
 } from "./ui/dialog";
 import { Separator } from "./ui/separator";
 import { Label } from "./ui/label";
-import { BUFFER_SIZE, type LogEntry } from "./store";
+import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "./store";
 
 type PanelMode = "sheet" | "fixed";
 type SheetSide = "bottom" | "right" | "left" | "top";
@@ -119,6 +119,23 @@ function formatTs(ts: number) {
 function tryPrettyJson(text: string) {
   try { return JSON.stringify(JSON.parse(text), null, 2); }
   catch { return text; }
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function downloadBody(body: string, filename: string) {
+  const isJson = body.trimStart().startsWith("{") || body.trimStart().startsWith("[");
+  const blob = new Blob([body], { type: isJson ? "application/json" : "text/plain" });
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = `${filename}.${isJson ? "json" : "txt"}`;
+  a.click();
+  URL.revokeObjectURL(href);
 }
 
 function OptionButton({
@@ -285,12 +302,37 @@ function HeaderList({ headers }: { headers: Record<string, string> | undefined |
   );
 }
 
-function BodyViewer({ body, contentType, emptyLabel }: {
+function BodyViewer({ body, contentType, emptyLabel, downloadName }: {
   body: string | null | undefined;
   contentType: string | null;
   emptyLabel: string;
+  downloadName?: string;
 }) {
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => { setRevealed(false); }, [body]);
+
   if (!body) return <p className="text-muted-foreground text-[11px]">{emptyLabel}</p>;
+
+  if (body.length >= BODY_LIMIT && !revealed) {
+    return (
+      <div className="flex flex-col gap-3 p-3">
+        <p className="text-[11px] text-muted-foreground">
+          Body is large ({formatBytes(body.length)}) and may freeze the panel when rendered.
+        </p>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => setRevealed(true)}>
+            Render anyway
+          </Button>
+          {downloadName && (
+            <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => downloadBody(body, downloadName)}>
+              Download
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const isJson = contentType?.includes("json") || body.trimStart().startsWith("{") || body.trimStart().startsWith("[");
   return (
     <pre className="text-[11px] text-foreground whitespace-pre-wrap break-all leading-relaxed">
@@ -302,6 +344,7 @@ function BodyViewer({ body, contentType, emptyLabel }: {
 function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void }) {
   let pathname = entry.url;
   try { pathname = new URL(entry.url).pathname; } catch { /* keep full url */ }
+  const downloadName = pathname.split("/").filter(Boolean).pop() || "response";
 
   return (
     <div className="flex flex-col h-full overflow-hidden border-border">
@@ -369,7 +412,7 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
           <TabsContent value="payload" className="h-full m-0">
             <ScrollArea className="h-full">
               <div className="p-3">
-                <BodyViewer body={entry.requestBody} contentType={entry.requestHeaders?.["content-type"] ?? null} emptyLabel="No request body" />
+                <BodyViewer body={entry.requestBody} contentType={entry.requestHeaders?.["content-type"] ?? null} emptyLabel="No request body" downloadName={downloadName} />
               </div>
             </ScrollArea>
           </TabsContent>
@@ -377,7 +420,7 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
           <TabsContent value="response" className="h-full m-0">
             <ScrollArea className="h-full">
               <div className="p-3">
-                <BodyViewer body={entry.responseBody} contentType={entry.responseHeaders?.["content-type"] ?? null} emptyLabel="No response body" />
+                <BodyViewer body={entry.responseBody} contentType={entry.responseHeaders?.["content-type"] ?? null} emptyLabel="No response body" downloadName={downloadName} />
               </div>
             </ScrollArea>
           </TabsContent>

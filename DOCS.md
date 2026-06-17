@@ -431,8 +431,13 @@ Opens to the right of the table inside a `ResizablePanelGroup`. The split is use
 |-----|----------|
 | **General** | URL, method, status code, start time, duration, duration bar |
 | **Headers** | Response headers stacked above request headers |
-| **Payload** | Request body, auto-formatted if JSON |
-| **Response** | Response body, auto-formatted if JSON |
+| **Payload** | Request body, auto-formatted if JSON. Bodies at or above `BODY_LIMIT` show a warning instead of rendering automatically — see below. |
+| **Response** | Response body, auto-formatted if JSON. Bodies at or above `BODY_LIMIT` show a warning instead of rendering automatically — see below. |
+
+Bodies at or above `BODY_LIMIT` (default 50 KB) are not rendered immediately to avoid freezing the panel. Instead a warning is shown with two options:
+
+- **Render anyway** — renders the captured body (up to `BODY_LIMIT` bytes). The user accepts the risk of a slow render.
+- **Download** — saves the captured body as `.json` (if the content looks like JSON) or `.txt`. The download filename is derived from the last path segment of the request URL.
 
 ### Toolbar
 
