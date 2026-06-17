@@ -68,7 +68,7 @@ Server (Node.js runtime)
          ├── reads x-dev-sid header (or __dev_sid cookie fallback)
          ├── replays only buffer entries matching sessionId
          ├── streams only new entries matching sessionId
-         └── sends ": ping" comment every 15 s (keepalive)
+         └── sends ": ping" comment every 8 s (keepalive)
 
 Browser (Client)
 │
@@ -131,10 +131,11 @@ The store keeps a ring buffer of the last 100 entries (configurable via `bufferS
 
 1. Opens a `ReadableStream`
 2. Resolves the session ID from the `x-dev-sid` header, falling back to the `__dev_sid` cookie if the header is absent (e.g. when the middleware matcher excludes `/api/*`)
-3. **Replays** all buffered entries that match the session ID — this ensures requests that happened before the browser's `EventSource` opened are not lost
-4. Starts a 15-second `setInterval` that writes an SSE comment (`: ping\n\n`) to keep the connection alive through proxies and load balancers
-5. Subscribes to the store and streams new entries as `data: <json>\n\n` SSE frames filtered by session ID
-6. On disconnect (`cancel()`): clears the heartbeat interval and unsubscribes from the store
+3. Sends a `: connected\n\n` SSE comment immediately — satisfies proxies that enforce a first-byte timeout (e.g. Varnish) before any real data or heartbeat arrives
+4. Reads the `Last-Event-ID` request header (sent automatically by the browser on reconnect) and **replays** only buffered entries that came after that ID — on a fresh connection with no `Last-Event-ID`, the full session buffer is replayed
+5. Starts an 8-second `setInterval` that writes an SSE comment (`: ping\n\n`) to keep the connection alive through proxies and load balancers
+6. Subscribes to the store and streams new entries as `id: <id>\ndata: <json>\n\n` SSE frames filtered by session ID
+7. On disconnect (`cancel()`): clears the heartbeat interval and unsubscribes from the store
 
 An optional `guard` function runs before the stream opens. Returning a `Response` from it blocks the connection — useful for protecting the endpoint in staging:
 
@@ -489,6 +490,8 @@ Next.js expects `instrumentation.ts` at the root of the project, or inside `src/
 
 SSR fetches execute during the request lifecycle, often completing before the browser has opened the `EventSource` connection. The 100-entry buffer captures these pre-connect entries and replays them as the first frames on every new SSE connection.
 
+On reconnect, the browser automatically sends the `Last-Event-ID` header containing the ID of the last event it received. The endpoint uses this to replay only entries that came after that point, so reconnects (e.g. due to a proxy idle timeout) do not produce duplicate rows in the panel.
+
 ### Why Clear uses a `localStorage` timestamp instead of clearing the server buffer
 
 A naive "clear" would only wipe the client-side React state. On the next page refresh, the SSE endpoint replays the server buffer for the session, and all the cleared entries reappear.
@@ -499,9 +502,11 @@ The solution: on clear, `Date.now()` is written to `localStorage` under `next-fe
 
 ### Why the SSE heartbeat?
 
-Proxies (nginx, GCP load balancers, Cloudflare) and serverless platforms close idle HTTP connections after a configurable timeout — commonly 30–60 seconds. When the SSE connection is idle (no server-side fetches to stream), the connection is silently dropped. The browser's `EventSource` detects the close and reconnects, triggering a buffer replay that would cause duplicate entries without the deduplication described above.
+Proxies (nginx, GCP load balancers, Cloudflare, Varnish/Fastly) and serverless platforms close idle HTTP connections after a configurable timeout. When the SSE connection is idle (no server-side fetches to stream), the connection is silently dropped. The browser's `EventSource` detects the close and reconnects.
 
-The handler writes an SSE comment (`: ping\n\n`) every 15 seconds via `setInterval`. Browser `EventSource` implementations ignore SSE comments, so the ping has no effect on the client beyond keeping the TCP connection alive. The interval is cleared in the stream's `cancel()` callback to avoid a leak after the client disconnects.
+The handler writes an SSE comment (`: ping\n\n`) every **8 seconds** via `setInterval`. This interval is intentionally short — Varnish and Fastly CDN commonly enforce idle timeouts around 10 seconds, so 8 s keeps the connection alive without requiring infrastructure changes. Browser `EventSource` implementations ignore SSE comments, so the ping has no effect on the client beyond keeping the TCP connection alive. The interval is cleared in the stream's `cancel()` callback to avoid a leak after the client disconnects.
+
+When the connection does drop and the browser reconnects, `Last-Event-ID` prevents duplicate entries — see [Why buffer replay on SSE connect?](#why-buffer-replay-on-sse-connect).
 
 ### Why `response.clone().text().then(...)` instead of `await response.text()`?
 

@@ -36,33 +36,46 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
       (await cookies()).get("__dev_sid")?.value ??
       null;
 
+    // On reconnect the browser sends Last-Event-ID with the last received entry id.
+    // Use it to replay only entries the client hasn't seen yet.
+    const lastEventId = request.headers.get("last-event-id");
+
     let unsubscribe: (() => void) | undefined;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
 
     const stream = new ReadableStream({
       start(controller) {
         const encoder = new TextEncoder();
-        const encode = (entry: unknown) =>
-          encoder.encode(`data: ${JSON.stringify(entry)}\n\n`);
+        const encodeEntry = (entry: { id: string }) =>
+          encoder.encode(`id: ${entry.id}\ndata: ${JSON.stringify(entry)}\n\n`);
 
         // Sent immediately so proxies with a first-byte timeout (e.g. Varnish) don't
         // close the connection before the first real data or heartbeat arrives.
         controller.enqueue(encoder.encode(": connected\n\n"));
 
-        for (const entry of devLogStore.getBuffer()) {
-          if (sessionId && entry.sessionId === sessionId) controller.enqueue(encode(entry));
+        const buffer = devLogStore.getBuffer();
+        let lastSeenIndex = -1;
+        if (lastEventId) {
+          for (let i = buffer.length - 1; i >= 0; i--) {
+            if (buffer[i].id === lastEventId) { lastSeenIndex = i; break; }
+          }
         }
 
-        // SSE comment sent every 15 s — keeps proxies and load balancers from
-        // closing idle connections before the client disconnects.
+        for (let i = lastSeenIndex + 1; i < buffer.length; i++) {
+          const entry = buffer[i];
+          if (sessionId && entry.sessionId === sessionId) controller.enqueue(encodeEntry(entry));
+        }
+
+        // SSE comment sent every 8 s — keeps proxies and load balancers from closing
+        // idle connections. 8 s is below common proxy idle timeouts (~10 s for Varnish).
         heartbeat = setInterval(() => {
           try { controller.enqueue(encoder.encode(": ping\n\n")); } catch { /* closed */ }
-        }, 15_000);
+        }, 8_000);
 
         unsubscribe = devLogStore.subscribe((entry) => {
           if (!sessionId || entry.sessionId !== sessionId) return;
           try {
-            controller.enqueue(encode(entry));
+            controller.enqueue(encodeEntry(entry));
           } catch {
             // client disconnected mid-write; cancel handles cleanup
           }
