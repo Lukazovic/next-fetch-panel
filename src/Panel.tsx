@@ -722,6 +722,8 @@ function PanelInner({
 }
 
 const CLEARED_AT_KEY = "next-fetch-panel-cleared-at";
+const SCROLL_AREA_VIEWPORT_SELECTOR = '[data-slot="scroll-area-viewport"]';
+const SCROLL_BOTTOM_THRESHOLD_PX = 100;
 
 function SheetResizeHandle({
   side,
@@ -887,7 +889,16 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
   }
 
   useEffect(() => {
-    if (open && !selected) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!open || selected) return;
+    const bottom = bottomRef.current;
+    if (!bottom) return;
+    const viewport = bottom.closest(SCROLL_AREA_VIEWPORT_SELECTOR) as HTMLElement | null;
+    const distanceFromBottom = viewport
+      ? viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight
+      : 0;
+    if (distanceFromBottom < SCROLL_BOTTOM_THRESHOLD_PX) {
+      bottom.scrollIntoView({ behavior: "smooth" });
+    }
   }, [entries, open, selected]);
 
   const innerProps = {
