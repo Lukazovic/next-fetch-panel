@@ -315,6 +315,66 @@ You can use any condition — `NODE_ENV`, a custom env var, a feature flag, or a
 
 ---
 
+## Exporting logs for test automation
+
+The snapshot endpoint returns the current server-side log buffer for a session as JSON. Call it in test teardown to save network logs as CI artifacts.
+
+**1. Create the route:**
+
+```ts
+// app/api/dev-network/snapshot/route.ts
+export { dynamic, GET_SNAPSHOT as GET } from "next-fetch-panel/route";
+```
+
+With access control:
+
+```ts
+// app/api/dev-network/snapshot/route.ts
+import { createDevPanelSnapshot } from "next-fetch-panel/route";
+
+export const dynamic = "force-dynamic";
+export const GET = createDevPanelSnapshot({
+  guard: (request) => {
+    if (!isValidToken(request.headers.get("authorization")))
+      return new Response("Forbidden", { status: 403 });
+  },
+});
+```
+
+**2. Call it from your test runner:**
+
+```ts
+// Playwright example — save logs as artifact after each test
+test.afterEach(async ({ request, page }, testInfo) => {
+  const cookie = (await page.context().cookies()).find(c => c.name === "__dev_sid");
+  if (!cookie) return;
+
+  const res = await request.get("/api/dev-network/snapshot", {
+    headers: { Cookie: `__dev_sid=${cookie.value}` },
+  });
+  const { entries } = await res.json();
+
+  await testInfo.attach("network-logs.json", {
+    contentType: "application/json",
+    body: JSON.stringify(entries, null, 2),
+  });
+});
+```
+
+**Response shape:**
+
+```ts
+{ entries: LogEntry[] }
+```
+
+The snapshot only includes entries captured since the session was created, up to the configured `bufferSize` (default: 100). Increase it in CI if your test suites make many requests:
+
+```ts
+await registerDevPanel({ bufferSize: 2000 });
+```
+
+---
+
 ## Public API
 
 ```ts
@@ -323,6 +383,6 @@ import type { LogEntry, ButtonPosition } from "next-fetch-panel";
 
 import { registerDevPanel } from "next-fetch-panel/patch";
 import { withDevPanel } from "next-fetch-panel/middleware";
-import { createDevPanelRoute } from "next-fetch-panel/route";
+import { createDevPanelRoute, createDevPanelSnapshot } from "next-fetch-panel/route";
 import { createDevPanelAxiosInterceptors } from "next-fetch-panel/interceptor";
 ```

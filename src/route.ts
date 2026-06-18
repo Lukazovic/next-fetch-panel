@@ -99,3 +99,44 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
 
 // Default export for the simple plug-and-play case.
 export const GET = createDevPanelRoute();
+
+/**
+ * Returns a Next.js Route Handler GET function that responds with a JSON
+ * snapshot of the current server-side log buffer for the caller's session.
+ * Useful for test automation — call it in teardown to collect network logs
+ * as CI artifacts.
+ *
+ *   // app/api/dev-network/snapshot/route.ts
+ *   export { dynamic, GET_SNAPSHOT as GET } from "next-fetch-panel/route"
+ *
+ * With access control:
+ *   export const dynamic = "force-dynamic"
+ *   export const GET = createDevPanelSnapshot({
+ *     guard: (req) => {
+ *       if (!isValidToken(req.headers.get("authorization")))
+ *         return new Response("Forbidden", { status: 403 })
+ *     },
+ *   })
+ */
+export function createDevPanelSnapshot(options?: { guard?: GuardFn; enabled?: boolean }) {
+  return async function GET(request: Request) {
+    if (options?.enabled === false) return new Response(null, { status: 404 });
+
+    const blocked = await options?.guard?.(request);
+    if (blocked instanceof Response) return blocked;
+
+    const sessionId =
+      (await headers()).get("x-dev-sid") ??
+      (await cookies()).get("__dev_sid")?.value ??
+      null;
+
+    const entries = devLogStore
+      .getBuffer()
+      .filter((e) => sessionId !== null && e.sessionId === sessionId);
+
+    return Response.json({ entries });
+  };
+}
+
+// Default export for the simple plug-and-play case.
+export const GET_SNAPSHOT = createDevPanelSnapshot();

@@ -63,13 +63,19 @@ Server (Node.js runtime)
 │                                    entries tagged with sessionId
 │                                    (stored on globalThis to survive HMR)
 │
-└── app/api/dev-network/route.ts ← SSE endpoint (session-scoped)
+├── app/api/dev-network/route.ts ← SSE endpoint (session-scoped)
+│        │
+│        ├── reads x-dev-sid header (or __dev_sid cookie fallback)
+│        ├── reads Last-Event-ID header (sent by browser on reconnect)
+│        ├── replays only buffer entries after Last-Event-ID (full replay on fresh connect)
+│        ├── streams only new entries matching sessionId (each frame includes id: field)
+│        └── sends ": ping" comment every 8 s (keepalive)
+│
+└── app/api/dev-network/snapshot/route.ts ← JSON snapshot endpoint (session-scoped)
          │
          ├── reads x-dev-sid header (or __dev_sid cookie fallback)
-         ├── reads Last-Event-ID header (sent by browser on reconnect)
-         ├── replays only buffer entries after Last-Event-ID (full replay on fresh connect)
-         ├── streams only new entries matching sessionId (each frame includes id: field)
-         └── sends ": ping" comment every 8 s (keepalive)
+         ├── filters buffer to entries matching sessionId
+         └── returns { entries: LogEntry[] } — useful for test automation / CI artifacts
 
 Browser (Client)
 │
