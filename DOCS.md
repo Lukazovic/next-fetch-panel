@@ -484,8 +484,8 @@ type PanelConfig = {
   mode: "sheet" | "fixed";
   sheetSide: "bottom" | "right" | "top" | "left";
   sheetModal: boolean;        // true = blocks page interaction
-  width: number;              // px — fixed mode width; also set by drag-resizing a left/right sheet
-  height: number;             // px — fixed mode height; also set by drag-resizing a bottom/top sheet
+  width: number;              // px — set by drag-resizing (fixed mode or left/right sheet)
+  height: number;             // px — set by drag-resizing (fixed mode or bottom/top sheet)
   colorScheme: "system" | "light" | "dark";
   detailSize: number;         // detail pane width as % of panel body (0–100)
 };
