@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.0] — 2026-06-18
+
+### Added
+
+- **Fixed modal resizable from all four edges** — the fixed modal now has drag handles on every edge (top, bottom, left, right), matching the resize UX of sheet mode. Previously only the sheet had drag-to-resize; the fixed modal required typing pixel values in a settings dialog. The new handles use `getBoundingClientRect()` so the math is accurate regardless of which corner the panel is anchored at. Size is still saved to `localStorage` and restored on the next page load.
+- **Snapshot endpoint for test automation** — `GET /api/dev-network/snapshot` returns the current log buffer for the caller's session as `{ entries: LogEntry[] }`. Useful for CI pipelines: call it in test teardown and save the JSON as an artifact. Supports the same `guard` and `enabled` options as the SSE route.
+  - Simple setup: `export { dynamic, GET_SNAPSHOT as GET } from "next-fetch-panel/route"`
+  - Composable: `createDevPanelSnapshot({ guard, enabled })`
+
+### Removed
+
+- **Width / height inputs from the Settings dialog (fixed mode)** — replaced by drag-to-resize on all four edges. The underlying `width` and `height` config values are unchanged and still persisted to `localStorage`.
+
+---
+
 ## [0.5.1] — 2026-06-18
 
 ### Fixed
