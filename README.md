@@ -139,7 +139,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
-In sheet mode, the panel is resizable — drag the thin handle at the open edge to change its height (bottom/top sheet) or width (left/right sheet). The size is saved to `localStorage` automatically.
+Both modes are resizable. In sheet mode, drag the handle at the inward-facing edge to change its height (bottom/top) or width (left/right). In fixed modal mode, all four edges have handles — drag any edge to resize. The size is saved to `localStorage` automatically.
 
 ---
 

@@ -18,7 +18,6 @@ import {
   DialogDescription,
 } from "./ui/dialog";
 import { Separator } from "./ui/separator";
-import { Label } from "./ui/label";
 import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "./store";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
@@ -238,29 +237,6 @@ function OptionButton({
   );
 }
 
-function NumInput({
-  label, value, onChange, min = 200, max = 2000,
-}: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <div className="flex items-center gap-2">
-        <input
-          type="number"
-          min={min}
-          max={max}
-          value={value}
-          onChange={(e) => {
-            const n = parseInt(e.target.value, 10);
-            if (!isNaN(n) && n >= min && n <= max) onChange(n);
-          }}
-          className="w-24 rounded-md border border-border bg-muted px-2 py-1 text-xs text-foreground outline-none focus:ring-1 focus:ring-ring"
-        />
-        <span className="text-xs text-muted-foreground">px</span>
-      </div>
-    </div>
-  );
-}
 
 function SettingsDialog({
   config, update, open, onOpenChange, theme,
@@ -315,10 +291,10 @@ function SettingsDialog({
               </div>
             </div>
 
-            <Separator className="bg-border" />
-
             {config.mode === "sheet" && (
               <>
+                <Separator className="bg-border" />
+
                 <div className="flex flex-col gap-2">
                   <p className="font-medium text-foreground">Sheet side</p>
                   <div className="flex gap-2 flex-wrap">
@@ -344,18 +320,7 @@ function SettingsDialog({
                     Non-modal lets you click the page while the panel is open.
                   </p>
                 </div>
-
               </>
-            )}
-
-            {config.mode === "fixed" && (
-              <div className="flex flex-col gap-4">
-                <p className="font-medium text-foreground">Dimensions</p>
-                <div className="flex gap-6">
-                  <NumInput label="Width"  value={config.width}  onChange={(v) => update({ width: v })} />
-                  <NumInput label="Height" value={config.height} onChange={(v) => update({ height: v })} />
-                </div>
-              </div>
             )}
           </div>
         </ScrollArea>
@@ -724,6 +689,10 @@ function PanelInner({
 const CLEARED_AT_KEY = "next-fetch-panel-cleared-at";
 const SCROLL_AREA_VIEWPORT_SELECTOR = '[data-slot="scroll-area-viewport"]';
 const SCROLL_BOTTOM_THRESHOLD_PX = 100;
+const FIXED_MIN_WIDTH_PX = 320;
+const FIXED_MIN_HEIGHT_PX = 200;
+const FIXED_MAX_WIDTH_FRACTION = 0.95;
+const FIXED_MAX_HEIGHT_FRACTION = 0.9;
 
 function SheetResizeHandle({
   side,
@@ -778,6 +747,67 @@ function SheetResizeHandle({
   );
 }
 
+function FixedResizeHandle({
+  direction,
+  panelRef,
+  onResize,
+}: {
+  direction: "top" | "bottom" | "left" | "right";
+  panelRef: React.RefObject<HTMLDivElement | null>;
+  onResize: (w: number, h: number) => void;
+}) {
+  const isHorizontal = direction === "top" || direction === "bottom";
+
+  function handlePointerDown(e: React.PointerEvent) {
+    e.preventDefault();
+
+    function onMove(ev: PointerEvent) {
+      const rect = panelRef.current!.getBoundingClientRect();
+      let w = rect.width;
+      let h = rect.height;
+
+      if (direction === "top")         h = rect.bottom - ev.clientY;
+      else if (direction === "bottom") h = ev.clientY - rect.top;
+      else if (direction === "left")   w = rect.right - ev.clientX;
+      else                             w = ev.clientX - rect.left;
+
+      onResize(
+        Math.min(Math.round(window.innerWidth * FIXED_MAX_WIDTH_FRACTION), Math.max(FIXED_MIN_WIDTH_PX, Math.round(w))),
+        Math.min(Math.round(window.innerHeight * FIXED_MAX_HEIGHT_FRACTION), Math.max(FIXED_MIN_HEIGHT_PX, Math.round(h))),
+      );
+    }
+
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  return (
+    <div
+      className={cn(
+        "group/resize absolute z-10 flex items-center justify-center select-none touch-none",
+        isHorizontal ? "inset-x-0 h-2 cursor-ns-resize" : "inset-y-0 w-2 cursor-ew-resize",
+        direction === "top" && "top-0",
+        direction === "bottom" && "bottom-0",
+        direction === "left" && "left-0",
+        direction === "right" && "right-0",
+      )}
+      onPointerDown={handlePointerDown}
+    >
+      <div
+        className={cn(
+          "rounded-full bg-border opacity-0 transition-opacity group-hover/resize:opacity-100",
+          isHorizontal ? "h-1 w-8" : "w-1 h-8",
+        )}
+      />
+    </div>
+  );
+}
+
 export type ButtonPosition =
   | "bottom-right"
   | "bottom-center"
@@ -810,6 +840,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
   const [selected, setSelected] = useState<LogEntry | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fixedPanelRef = useRef<HTMLDivElement>(null);
   const clearedAtRef = useRef<number>(Number(localStorage.getItem(CLEARED_AT_KEY)) || 0);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const { config, update } = usePanelConfig();
@@ -975,10 +1006,15 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
 
       {config.mode === "fixed" && open && (
         <div
+          ref={fixedPanelRef}
           data-nfp
           className={cn(themeClass, "fixed z-9998 flex flex-col rounded-lg border border-border bg-background text-foreground font-mono text-xs shadow-2xl", FIXED_PANEL_POSITION_CLASSES[buttonPosition])}
           style={{ width: config.width, height: config.height }}
         >
+          <FixedResizeHandle direction="top"    panelRef={fixedPanelRef} onResize={(w, h) => update({ width: w, height: h })} />
+          <FixedResizeHandle direction="bottom" panelRef={fixedPanelRef} onResize={(w, h) => update({ width: w, height: h })} />
+          <FixedResizeHandle direction="left"   panelRef={fixedPanelRef} onResize={(w, h) => update({ width: w, height: h })} />
+          <FixedResizeHandle direction="right"  panelRef={fixedPanelRef} onResize={(w, h) => update({ width: w, height: h })} />
           <PanelInner {...innerProps} />
         </div>
       )}

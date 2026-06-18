@@ -403,12 +403,15 @@ The button can be hidden entirely with `showToggleButton={false}` — see [Progr
 
 | Mode | Description |
 |------|-------------|
-| **Sheet** | Slides in from any edge (bottom / right / top / left). Resizable by dragging the edge handle. |
-| **Fixed modal** | Positioned fixed near the toggle button with configurable width and height |
+| **Sheet** | Slides in from any edge (bottom / right / top / left). Resizable by dragging any edge handle. |
+| **Fixed modal** | Positioned fixed near the toggle button. Resizable by dragging any of the four edge handles. |
 
-### Sheet Resize Handle
+### Resize Handles
 
-In sheet mode, a thin drag strip is placed at the open edge of the sheet (top edge for a bottom sheet, left edge for a right sheet, etc.). Hovering over it reveals a pill indicator; dragging resizes the sheet live. The new size is saved to `localStorage` immediately and restored on the next page load. The size is shared with the fixed mode `width`/`height` settings.
+Both modes support drag-to-resize. Hovering any edge of the panel reveals a pill indicator; dragging resizes live. The size is saved to `localStorage` immediately and restored on the next page load.
+
+- **Sheet mode** — one handle at the inward-facing edge (top for a bottom sheet, left for a right sheet, etc.), resizing along one axis only.
+- **Fixed modal mode** — handles on all four edges. Top/bottom edges resize height; left/right edges resize width. The panel stays anchored at its corner while the opposite edge moves.
 
 ### Request Table
 
