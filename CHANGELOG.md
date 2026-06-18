@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.1] — 2026-06-18
+
+### Fixed
+
+- **Scroll leaking to the page** — scrolling inside the panel no longer propagates to the page when the request list reaches the top or bottom of the scroll area (`overscroll-behavior: contain`).
+- **Request list auto-scrolling while browsing** — new entries no longer force the list to jump to the bottom when the user has scrolled up to review earlier requests. Auto-scroll resumes automatically once the user scrolls back within 100 px of the bottom.
+
+---
+
 ## [0.5.0] — 2026-06-17
 
 ### Added
