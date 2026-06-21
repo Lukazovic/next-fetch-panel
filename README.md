@@ -113,8 +113,7 @@ export const dynamic = "force-dynamic";
 export const GET = createDevPanelRoute({
   guard: (request) => {
     const token = request.headers.get("authorization");
-    if (!isValidAdminToken(token))
-      return new Response("Forbidden", { status: 403 });
+    if (!isValidAdminToken(token)) return new Response("Forbidden", { status: 403 });
   },
 });
 ```
@@ -153,11 +152,7 @@ import { useDevNetworkPanel } from "next-fetch-panel";
 
 export function MyToolbar() {
   const { isOpen, toggle } = useDevNetworkPanel();
-  return (
-    <button onClick={toggle}>
-      {isOpen ? "Hide" : "Show"} network panel
-    </button>
-  );
+  return <button onClick={toggle}>{isOpen ? "Hide" : "Show"} network panel</button>;
 }
 ```
 
@@ -177,14 +172,14 @@ Use `buttonPosition` to place the default toggle button in any of six positions 
 <DevNetworkPanel buttonPosition="bottom-center" />
 ```
 
-| Value | Position |
-|-------|----------|
-| `"bottom-right"` | Bottom-right corner *(default)* |
-| `"bottom-center"` | Bottom edge, centered |
-| `"bottom-left"` | Bottom-left corner |
-| `"top-right"` | Top-right corner |
-| `"top-center"` | Top edge, centered |
-| `"top-left"` | Top-left corner |
+| Value             | Position                        |
+| ----------------- | ------------------------------- |
+| `"bottom-right"`  | Bottom-right corner _(default)_ |
+| `"bottom-center"` | Bottom edge, centered           |
+| `"bottom-left"`   | Bottom-left corner              |
+| `"top-right"`     | Top-right corner                |
+| `"top-center"`    | Top edge, centered              |
+| `"top-left"`      | Top-left corner                 |
 
 In `fixed` panel mode, the panel container anchors to the same corner/edge as the button.
 
@@ -206,7 +201,7 @@ await registerDevPanel({
   redact: (defaults) => ({
     ...defaults,
     urlParams: [...defaults.urlParams, "shop_token"],
-    bodyKeys:  [...defaults.bodyKeys,  "refreshToken"],
+    bodyKeys: [...defaults.bodyKeys, "refreshToken"],
   }),
 });
 
@@ -306,12 +301,12 @@ You can use any condition — `NODE_ENV`, a custom env var, a feature flag, or a
 
 ## Security notes
 
-| Concern | How it is handled |
-|---|---|
+| Concern                         | How it is handled                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | User A seeing User B's requests | Each browser session gets a unique `__dev_sid` cookie. The SSE stream filters strictly by session ID. |
-| Panel accessible to anyone | Use the `guard` option on `createDevPanelRoute`. |
-| Secrets leaking to the browser | Configured patterns are replaced with `[REDACTED]` before entries reach the store. |
-| Running in production | Pass `enabled: process.env.NODE_ENV !== "production"` to each entry point. |
+| Panel accessible to anyone      | Use the `guard` option on `createDevPanelRoute`.                                                      |
+| Secrets leaking to the browser  | Configured patterns are replaced with `[REDACTED]` before entries reach the store.                    |
+| Running in production           | Pass `enabled: process.env.NODE_ENV !== "production"` to each entry point.                            |
 
 ---
 
@@ -346,7 +341,7 @@ export const GET = createDevPanelSnapshot({
 ```ts
 // Playwright example — save logs as artifact after each test
 test.afterEach(async ({ request, page }, testInfo) => {
-  const cookie = (await page.context().cookies()).find(c => c.name === "__dev_sid");
+  const cookie = (await page.context().cookies()).find((c) => c.name === "__dev_sid");
   if (!cookie) return;
 
   const res = await request.get("/api/dev-network/snapshot", {
@@ -385,9 +380,20 @@ npm test
 npm run fixture:install   # one-time: installs the fixture app dependencies
 npm run test:e2e          # runs all Playwright tests
 npm run test:e2e:ui       # opens the Playwright UI
+
+# Type checking (lib only, excludes fixture)
+npm run typecheck
+
+# Linting & formatting
+npm run lint              # ESLint
+npm run lint:fix          # ESLint with auto-fix
+npm run format:check      # Prettier (CI check)
+npm run format            # Prettier (write)
 ```
 
 E2E tests run against `fixtures/nextjs-app/`, a self-contained Next.js app wired to the local build via `"next-fetch-panel": "file:../.."`. Build the library first (`npm run build`) to ensure `dist/` is current; use `npm run dev` for watch mode during development.
+
+A pre-commit hook (husky + lint-staged) runs ESLint and Prettier automatically on staged files. CI enforces lint, format, typecheck, unit tests, and E2E tests in parallel jobs.
 
 ---
 

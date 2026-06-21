@@ -58,7 +58,6 @@
   --nfp-destructive: #f87171;
 }
 
-
 /*
   Scoped element reset for panel containers.
   Placed in @layer so Tailwind utilities (unlayered = higher priority) always win.
@@ -119,7 +118,9 @@
   [data-nfp] {
     font-size: 14px;
     line-height: 1.5;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+      monospace;
   }
 }
 
@@ -149,8 +150,8 @@
   --text-base--line-height: 24px;
 
   /* Container (max-w-sm, max-w-lg, etc.) — also rem-based by default */
-  --container-sm: 384px;  /* 24rem × 16 */
-  --container-lg: 512px;  /* 32rem × 16 */
+  --container-sm: 384px; /* 24rem × 16 */
+  --container-lg: 512px; /* 32rem × 16 */
 
   /* Button border-radius — hardcoded to match panel isolation (not consumer's shadcn radius) */
   --radius-md: 6px;

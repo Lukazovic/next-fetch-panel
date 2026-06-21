@@ -55,10 +55,7 @@ function redactUrl(url: string, params: string[]): string {
   }
 }
 
-function redactHeaders(
-  headers: Record<string, string>,
-  names: string[]
-): Record<string, string> {
+function redactHeaders(headers: Record<string, string>, names: string[]): Record<string, string> {
   const lower = new Set(names.map((n) => n.toLowerCase()));
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(headers)) {

@@ -32,9 +32,7 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
     // Header set by middleware; cookie fallback covers SSE routes excluded from the matcher.
     // Null guard prevents null === null matching across sessions when neither is available.
     const sessionId =
-      (await headers()).get("x-dev-sid") ??
-      (await cookies()).get("__dev_sid")?.value ??
-      null;
+      (await headers()).get("x-dev-sid") ?? (await cookies()).get("__dev_sid")?.value ?? null;
 
     // On reconnect the browser sends Last-Event-ID with the last received entry id.
     // Use it to replay only entries the client hasn't seen yet.
@@ -57,7 +55,10 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
         let lastSeenIndex = -1;
         if (lastEventId) {
           for (let i = buffer.length - 1; i >= 0; i--) {
-            if (buffer[i].id === lastEventId) { lastSeenIndex = i; break; }
+            if (buffer[i].id === lastEventId) {
+              lastSeenIndex = i;
+              break;
+            }
           }
         }
 
@@ -69,7 +70,11 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
         // SSE comment sent every 8 s — keeps proxies and load balancers from closing
         // idle connections. 8 s is below common proxy idle timeouts (~10 s for Varnish).
         heartbeat = setInterval(() => {
-          try { controller.enqueue(encoder.encode(": ping\n\n")); } catch { /* closed */ }
+          try {
+            controller.enqueue(encoder.encode(": ping\n\n"));
+          } catch {
+            /* closed */
+          }
         }, 8_000);
 
         unsubscribe = devLogStore.subscribe((entry) => {
@@ -126,9 +131,7 @@ export function createDevPanelSnapshot(options?: { guard?: GuardFn; enabled?: bo
     if (blocked instanceof Response) return blocked;
 
     const sessionId =
-      (await headers()).get("x-dev-sid") ??
-      (await cookies()).get("__dev_sid")?.value ??
-      null;
+      (await headers()).get("x-dev-sid") ?? (await cookies()).get("__dev_sid")?.value ?? null;
 
     const entries = devLogStore
       .getBuffer()

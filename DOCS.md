@@ -116,20 +116,20 @@ The store lives on `globalThis.__devLogStore` so it survives Next.js hot-reload 
 
 ```ts
 type LogEntry = {
-  id: string;            // `${timestamp}-${random}`
+  id: string; // `${timestamp}-${random}`
   url: string;
   method: string;
   status: number | null;
   statusText: string | null;
-  duration: number;      // milliseconds
-  ts: number;            // Date.now() at request start
+  duration: number; // milliseconds
+  ts: number; // Date.now() at request start
   error?: string;
   requestHeaders: Record<string, string>;
   responseHeaders: Record<string, string>;
   requestBody: string | null;
   responseBody: string | null;
-  requestBodyTruncated?: boolean;   // true when body was cut off at bodyLimit
-  responseBodyTruncated?: boolean;  // true when body was cut off at bodyLimit
+  requestBodyTruncated?: boolean; // true when body was cut off at bodyLimit
+  responseBodyTruncated?: boolean; // true when body was cut off at bodyLimit
   sessionId: string | null;
 };
 ```
@@ -176,19 +176,19 @@ The result: each browser sees only the server-side fetches it triggered, even in
 
 ```ts
 // Destructured — convenient when you want the built-in default matcher
-export const { middleware, config } = withDevPanel(handler)
+export const { middleware, config } = withDevPanel(handler);
 
 // Direct — when you define config separately (e.g. complex custom matcher)
-export const middleware = withDevPanel(handler)
-export const config = { matcher: ["..."] }
+export const middleware = withDevPanel(handler);
+export const config = { matcher: ["..."] };
 ```
 
 In Next.js 16+, the file was renamed from `middleware.ts` to `proxy.ts` and the export from `middleware` to `proxy`. The function works identically — just match the export name to what your Next.js version expects:
 
 ```ts
 // proxy.ts (Next.js 16+)
-export const proxy = withDevPanel(handler)
-export const config = { matcher: ["..."] }
+export const proxy = withDevPanel(handler);
+export const config = { matcher: ["..."] };
 ```
 
 ### 5. Axios Support (`src/interceptor.ts`)
@@ -214,10 +214,10 @@ if (typeof window === "undefined") {
 
 Two constants in `src/store.ts` define the defaults:
 
-| Constant | Default | Description |
-|----------|---------|-------------|
-| `BODY_LIMIT` | `50_000` (50 KB) | Maximum bytes captured from request and response bodies |
-| `BUFFER_SIZE` | `100` | Maximum entries kept in the server-side ring buffer |
+| Constant      | Default          | Description                                             |
+| ------------- | ---------------- | ------------------------------------------------------- |
+| `BODY_LIMIT`  | `50_000` (50 KB) | Maximum bytes captured from request and response bodies |
+| `BUFFER_SIZE` | `100`            | Maximum entries kept in the server-side ring buffer     |
 
 Both are exported and can be overridden at runtime:
 
@@ -259,12 +259,13 @@ Redaction happens in `src/patch.ts` and `src/interceptor.ts` immediately after a
 ```ts
 export const defaultRedactConfig: RedactConfig = {
   urlParams: ["api_key", "apikey", "secret", "token", "access_token", "password", "key"],
-  headers:   ["authorization", "x-api-key", "x-secret", "x-auth-token"],
-  bodyKeys:  ["password", "secret", "token", "api_key", "apiKey", "accessToken", "access_token"],
+  headers: ["authorization", "x-api-key", "x-secret", "x-auth-token"],
+  bodyKeys: ["password", "secret", "token", "api_key", "apiKey", "accessToken", "access_token"],
 };
 ```
 
 Matching is:
+
 - **URL params** — exact match against the query parameter name
 - **Headers** — case-insensitive match against the header name
 - **Body keys** — exact match against top-level JSON keys (non-JSON bodies are left untouched)
@@ -277,22 +278,24 @@ Pass a `redact` option to `registerDevPanel` and/or `createDevPanelAxiosIntercep
 
 ```ts
 type RedactInput =
-  | Partial<RedactConfig>                                   // plain object — replaces each provided category
-  | ((defaults: RedactConfig) => Partial<RedactConfig>);   // function — full control
+  | Partial<RedactConfig> // plain object — replaces each provided category
+  | ((defaults: RedactConfig) => Partial<RedactConfig>); // function — full control
 ```
 
 **Extend** — keep defaults, add your own keys:
+
 ```ts
 await registerDevPanel({
   redact: (defaults) => ({
     ...defaults,
     urlParams: [...defaults.urlParams, "shop_token"],
-    bodyKeys:  [...defaults.bodyKeys,  "refreshToken"],
+    bodyKeys: [...defaults.bodyKeys, "refreshToken"],
   }),
 });
 ```
 
 **Override a category** — replace the default list entirely:
+
 ```ts
 await registerDevPanel({
   redact: { headers: ["x-my-secret"] },
@@ -300,6 +303,7 @@ await registerDevPanel({
 ```
 
 **Disable a category** — pass an empty array:
+
 ```ts
 await registerDevPanel({
   redact: { headers: [] },
@@ -307,6 +311,7 @@ await registerDevPanel({
 ```
 
 **Remove one entry from defaults**:
+
 ```ts
 await registerDevPanel({
   redact: (d) => ({
@@ -344,6 +349,7 @@ createDevPanelAxiosInterceptors({ enabled: process.env.NODE_ENV !== "production"
 You can use any condition — `NODE_ENV`, a custom env var, a feature flag, or any boolean expression. Each entry point is independent, so you can disable only the server-side patching while keeping the route handler open for other sessions, or vice versa.
 
 When `enabled` is `false`:
+
 - `registerDevPanel` — returns immediately, `globalThis.fetch` is not patched
 - `withDevPanel` — skips session cookie logic, calls through to your handler if provided, returns `NextResponse.next()`
 - `createDevPanelRoute` — returns `404`
@@ -366,12 +372,12 @@ export function MyToolbar() {
 }
 ```
 
-| Value | Type | Description |
-|-------|------|-------------|
-| `isOpen` | `boolean` | Current open state, reactive — updates on every change |
-| `open` | `() => void` | Opens the panel (no-op if already open) |
-| `close` | `() => void` | Closes the panel (no-op if already closed) |
-| `toggle` | `() => void` | Flips the current state |
+| Value    | Type         | Description                                            |
+| -------- | ------------ | ------------------------------------------------------ |
+| `isOpen` | `boolean`    | Current open state, reactive — updates on every change |
+| `open`   | `() => void` | Opens the panel (no-op if already open)                |
+| `close`  | `() => void` | Closes the panel (no-op if already closed)             |
+| `toggle` | `() => void` | Flips the current state                                |
 
 `open`, `close`, and `toggle` are stable module-level references — safe as event handlers without `useCallback`.
 
@@ -395,23 +401,23 @@ A fixed floating button. Shows a green dot when entries exist and a count badge.
 
 Position is controlled by the `buttonPosition` prop on `<DevNetworkPanel>` (default `"bottom-right"`):
 
-| Value | Position |
-|-------|----------|
-| `"bottom-right"` | Bottom-right corner *(default)* |
-| `"bottom-center"` | Bottom edge, centered |
-| `"bottom-left"` | Bottom-left corner |
-| `"top-right"` | Top-right corner |
-| `"top-center"` | Top edge, centered |
-| `"top-left"` | Top-left corner |
+| Value             | Position                        |
+| ----------------- | ------------------------------- |
+| `"bottom-right"`  | Bottom-right corner _(default)_ |
+| `"bottom-center"` | Bottom edge, centered           |
+| `"bottom-left"`   | Bottom-left corner              |
+| `"top-right"`     | Top-right corner                |
+| `"top-center"`    | Top edge, centered              |
+| `"top-left"`      | Top-left corner                 |
 
 The button can be hidden entirely with `showToggleButton={false}` — see [Programmatic Control](#programmatic-control).
 
 ### Panel Modes
 
-| Mode | Description |
-|------|-------------|
-| **Sheet** | Slides in from any edge (bottom / right / top / left). Resizable by dragging any edge handle. |
-| **Fixed modal** | Positioned fixed near the toggle button. Resizable by dragging any of the four edge handles. |
+| Mode            | Description                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| **Sheet**       | Slides in from any edge (bottom / right / top / left). Resizable by dragging any edge handle. |
+| **Fixed modal** | Positioned fixed near the toggle button. Resizable by dragging any of the four edge handles.  |
 
 ### Resize Handles
 
@@ -422,13 +428,13 @@ Both modes support drag-to-resize. Hovering any edge of the panel reveals a pill
 
 ### Request Table
 
-| Column | Description |
-|--------|-------------|
-| Method | Color-coded (GET = blue, POST = violet, PUT/PATCH = orange, DELETE = red) |
-| Status | Color-coded (2xx = green, 3xx = amber, 4xx/5xx/error = red) |
-| URL | Truncated to available width |
-| Duration | Milliseconds |
-| Actions | Per-entry dropdown menu (see below) |
+| Column   | Description                                                               |
+| -------- | ------------------------------------------------------------------------- |
+| Method   | Color-coded (GET = blue, POST = violet, PUT/PATCH = orange, DELETE = red) |
+| Status   | Color-coded (2xx = green, 3xx = amber, 4xx/5xx/error = red)               |
+| URL      | Truncated to available width                                              |
+| Duration | Milliseconds                                                              |
+| Actions  | Per-entry dropdown menu (see below)                                       |
 
 Click any row to open the detail pane. Click the same row again to close it.
 
@@ -436,12 +442,12 @@ Click any row to open the detail pane. Click the same row again to close it.
 
 Each row has an **⋯** button at the right that opens a dropdown with the following actions:
 
-| Action | Description |
-|--------|-------------|
-| **Copy as cURL** | Copies a ready-to-run `curl` command to the clipboard, including method, URL, request headers, and body (with single-quote escaping). The trigger icon briefly turns green to confirm. |
-| **Download response body** | Downloads the captured response body as `.json` or `.txt`. Only shown when a response body was captured. |
-| **Download request body** | Downloads the captured request body as `.json` or `.txt`. Only shown when a request body was captured and is not binary. |
-| **Download full request data** | Downloads the complete `LogEntry` as a `.json` file, including URL, method, status, headers, both bodies, timing, and session metadata. |
+| Action                         | Description                                                                                                                                                                            |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Copy as cURL**               | Copies a ready-to-run `curl` command to the clipboard, including method, URL, request headers, and body (with single-quote escaping). The trigger icon briefly turns green to confirm. |
+| **Download response body**     | Downloads the captured response body as `.json` or `.txt`. Only shown when a response body was captured.                                                                               |
+| **Download request body**      | Downloads the captured request body as `.json` or `.txt`. Only shown when a request body was captured and is not binary.                                                               |
+| **Download full request data** | Downloads the complete `LogEntry` as a `.json` file, including URL, method, status, headers, both bodies, timing, and session metadata.                                                |
 
 Clicking action buttons does not select or deselect the row.
 
@@ -453,19 +459,19 @@ A search input above the request list. Type any substring to filter requests by 
 
 Opens to the right of the table inside a `ResizablePanelGroup`. The split is user-adjustable and the size is persisted to `localStorage`. Four tabs:
 
-| Tab | Contents |
-|-----|----------|
-| **General** | URL, method, status code, start time, duration, duration bar. If any body was truncated at capture time, a yellow warning is shown here (before the URL field) with approximate sizes and a prompt to increase `bodyLimit`. |
-| **Headers** | Response headers stacked above request headers |
-| **Payload** | Request body, auto-formatted if JSON. Bodies at or above `BODY_LIMIT` show a render warning instead of rendering automatically — see below. |
-| **Response** | Response body, auto-formatted if JSON. Bodies at or above `BODY_LIMIT` show a render warning instead of rendering automatically — see below. |
+| Tab          | Contents                                                                                                                                                                                                                    |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **General**  | URL, method, status code, start time, duration, duration bar. If any body was truncated at capture time, a yellow warning is shown here (before the URL field) with approximate sizes and a prompt to increase `bodyLimit`. |
+| **Headers**  | Response headers stacked above request headers                                                                                                                                                                              |
+| **Payload**  | Request body, auto-formatted if JSON. Bodies at or above `BODY_LIMIT` show a render warning instead of rendering automatically — see below.                                                                                 |
+| **Response** | Response body, auto-formatted if JSON. Bodies at or above `BODY_LIMIT` show a render warning instead of rendering automatically — see below.                                                                                |
 
 Bodies at or above `BODY_LIMIT` (default 50 KB) are not rendered immediately to avoid freezing the panel. Instead a warning is shown with two options:
 
 - **Render anyway** — renders the captured body. The user accepts the risk of a slow render.
 - **Download** — saves the captured body as `.json` (if the content looks like JSON) or `.txt`. The download filename is derived from the last path segment of the request URL.
 
-> **Truncation vs. render warning** — these are two separate concerns. The render warning in Payload/Response is a *client-side performance gate* based on the fixed `BODY_LIMIT` constant (50 KB). The truncation warning in General is set *at capture time* on the server, based on the configured `bodyLimit` option. A body can be large enough to trigger the render gate without being truncated (e.g. a 2 MB response with `bodyLimit: 3_000_000`).
+> **Truncation vs. render warning** — these are two separate concerns. The render warning in Payload/Response is a _client-side performance gate_ based on the fixed `BODY_LIMIT` constant (50 KB). The truncation warning in General is set _at capture time_ on the server, based on the configured `bodyLimit` option. A body can be large enough to trigger the render gate without being truncated (e.g. a 2 MB response with `bodyLimit: 3_000_000`).
 
 ### Toolbar
 
@@ -484,11 +490,11 @@ All settings are persisted to `localStorage` under the key `ssr-panel-config`. C
 type PanelConfig = {
   mode: "sheet" | "fixed";
   sheetSide: "bottom" | "right" | "top" | "left";
-  sheetModal: boolean;        // true = blocks page interaction
-  width: number;              // px — set by drag-resizing (fixed mode or left/right sheet)
-  height: number;             // px — set by drag-resizing (fixed mode or bottom/top sheet)
+  sheetModal: boolean; // true = blocks page interaction
+  width: number; // px — set by drag-resizing (fixed mode or left/right sheet)
+  height: number; // px — set by drag-resizing (fixed mode or bottom/top sheet)
   colorScheme: "system" | "light" | "dark";
-  detailSize: number;         // detail pane width as % of panel body (0–100)
+  detailSize: number; // detail pane width as % of panel body (0–100)
 };
 ```
 
@@ -617,18 +623,39 @@ npm run test:e2e          # headless
 npm run test:e2e:ui       # Playwright UI mode
 ```
 
+### Type checking and code quality
+
+```bash
+# TypeScript (lib only — excludes fixtures/)
+npm run typecheck
+
+# ESLint
+npm run lint
+npm run lint:fix
+
+# Prettier
+npm run format:check      # CI check
+npm run format            # write in place
+```
+
+ESLint uses a flat config (`eslint.config.js`, ESM). It covers `src/`, `playwright/`, and `playwright.config.ts`. Generated files (`src/panel.styles.ts`, `fixtures/`) are ignored.
+
+Prettier enforces consistent formatting. The config is in `.prettierrc`. A pre-commit hook (husky + lint-staged) runs both tools automatically on staged files so only changed files are checked on each commit.
+
+CI runs `lint`, `typecheck`, `test`, and `e2e` as four parallel jobs. Any failure blocks the merge.
+
 ### Unit and integration tests (`src/*.test.ts`, `src/Panel.test.tsx`)
 
-| File | What it covers |
-|------|---------------|
-| `store.test.ts` | Ring buffer, subscriber notifications, `configure()` |
-| `redact.test.ts` | URL param / header / body key redaction, custom configs |
-| `panel-state.test.ts` | Open/close/toggle state machine and subscriber lifecycle |
-| `patch.test.ts` | `globalThis.fetch` patching, body capture, truncation, session tagging, redaction |
-| `middleware.test.ts` | Session cookie creation, `x-dev-sid` forwarding, `enabled: false` no-op |
-| `interceptor.test.ts` | Axios request/response/error interceptors, URL construction, body truncation |
-| `route.test.ts` | SSE stream, session filter, `Last-Event-ID` replay, guard, `enabled: false` |
-| `Panel.test.tsx` | Toggle, open/close, SSE entry rendering, filter, detail pane, cURL copy, auto-scroll, SSE reconnect, theme, truncation warning |
+| File                  | What it covers                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `store.test.ts`       | Ring buffer, subscriber notifications, `configure()`                                                                           |
+| `redact.test.ts`      | URL param / header / body key redaction, custom configs                                                                        |
+| `panel-state.test.ts` | Open/close/toggle state machine and subscriber lifecycle                                                                       |
+| `patch.test.ts`       | `globalThis.fetch` patching, body capture, truncation, session tagging, redaction                                              |
+| `middleware.test.ts`  | Session cookie creation, `x-dev-sid` forwarding, `enabled: false` no-op                                                        |
+| `interceptor.test.ts` | Axios request/response/error interceptors, URL construction, body truncation                                                   |
+| `route.test.ts`       | SSE stream, session filter, `Last-Event-ID` replay, guard, `enabled: false`                                                    |
+| `Panel.test.tsx`      | Toggle, open/close, SSE entry rendering, filter, detail pane, cURL copy, auto-scroll, SSE reconnect, theme, truncation warning |
 
 `Panel.test.tsx` sets `@vitest-environment jsdom` per-file. All browser APIs that don't exist in jsdom (`EventSource`, `localStorage`, `navigator.clipboard`, `scrollIntoView`, `ResizeObserver`, `matchMedia`) are stubbed in `beforeAll`.
 
@@ -656,18 +683,18 @@ The fixture's `package.json` points to the library via `"next-fetch-panel": "fil
 
 ### E2E tests (`playwright/e2e.spec.ts`)
 
-| # | Test |
-|---|------|
-| 1 | Fetch captured end-to-end (SSR → panel entry) |
-| 2 | Axios request (fetch adapter) captured alongside native fetch |
-| 3 | Session isolation — two browser contexts see only their own requests |
-| 4 | Snapshot endpoint returns session entries as JSON |
-| 5 | Middleware sets `__dev_sid` cookie on first request |
-| 6 | New entries stream live as pages are navigated via SPA links |
-| 7 | Filter bar narrows entry list and clears on × click |
-| 8 | SSE reconnect with `Last-Event-ID` replays only unseen entries (no duplicates) |
-| 9 | Panel `useEffect` sets `__dev_sid` cookie when middleware does not (cookie fallback) |
-| 10 | Drag-resize changes the panel height and persists to `localStorage` after reload |
+| #   | Test                                                                                 |
+| --- | ------------------------------------------------------------------------------------ |
+| 1   | Fetch captured end-to-end (SSR → panel entry)                                        |
+| 2   | Axios request (fetch adapter) captured alongside native fetch                        |
+| 3   | Session isolation — two browser contexts see only their own requests                 |
+| 4   | Snapshot endpoint returns session entries as JSON                                    |
+| 5   | Middleware sets `__dev_sid` cookie on first request                                  |
+| 6   | New entries stream live as pages are navigated via SPA links                         |
+| 7   | Filter bar narrows entry list and clears on × click                                  |
+| 8   | SSE reconnect with `Last-Event-ID` replays only unseen entries (no duplicates)       |
+| 9   | Panel `useEffect` sets `__dev_sid` cookie when middleware does not (cookie fallback) |
+| 10  | Drag-resize changes the panel height and persists to `localStorage` after reload     |
 
 ---
 
@@ -706,9 +733,19 @@ next-fetch-panel/
 │   ├── route.mjs / route.js / route.d.ts
 │   └── interceptor.mjs / interceptor.js / interceptor.d.ts
 ├── playwright.config.ts
+├── tsconfig.playwright.json  tsconfig extended with node types for playwright files
 ├── package.json
 ├── tsup.config.ts
-└── tsconfig.json
+├── tsconfig.json
+├── eslint.config.js          ESLint flat config (ESM)
+├── .prettierrc
+├── .editorconfig
+├── .husky/
+│   └── pre-commit            runs lint-staged on staged files
+├── .github/
+│   └── workflows/ci.yml      lint · typecheck · test · e2e (parallel)
+├── AGENTS.md                 TDD guidelines for AI coding agents
+└── CLAUDE.md                 points to AGENTS.md
 ```
 
 ### Public exports
@@ -793,13 +830,13 @@ The panel uses `fractionalSecondDigits` in `toLocaleTimeString`. This option is 
 
 The library is split into four entry points, each with a distinct runtime environment:
 
-| Entry | Runtime | `"use client"` | Purpose |
-|-------|---------|----------------|---------|
-| `next-fetch-panel` | Browser | Yes | Panel React component |
-| `next-fetch-panel/patch` | Node.js server | No | `globalThis.fetch` interception |
-| `next-fetch-panel/middleware` | Node.js / Edge | No | Session cookie + header |
-| `next-fetch-panel/route` | Node.js server | No | SSE stream handler |
-| `next-fetch-panel/interceptor` | Node.js server | No | Axios request interception |
+| Entry                          | Runtime        | `"use client"` | Purpose                         |
+| ------------------------------ | -------------- | -------------- | ------------------------------- |
+| `next-fetch-panel`             | Browser        | Yes            | Panel React component           |
+| `next-fetch-panel/patch`       | Node.js server | No             | `globalThis.fetch` interception |
+| `next-fetch-panel/middleware`  | Node.js / Edge | No             | Session cookie + header         |
+| `next-fetch-panel/route`       | Node.js server | No             | SSE stream handler              |
+| `next-fetch-panel/interceptor` | Node.js server | No             | Axios request interception      |
 
 ### Why server utilities are not in the root index
 
@@ -816,9 +853,9 @@ The root entry exports only `DevNetworkPanel` and the `LogEntry` type. All serve
 
 The original `server-network-panel/Panel.tsx` imported UI components via `@/components/ui/*` and a utility via `@/lib/utils`. These aliases cannot be used in a library. The components are copied into `src/ui/` with two import paths updated:
 
-| Original | Library |
-|----------|---------|
-| `import { cn } from "@/lib/utils"` | `import { cn } from "../utils"` |
+| Original                                          | Library                             |
+| ------------------------------------------------- | ----------------------------------- |
+| `import { cn } from "@/lib/utils"`                | `import { cn } from "../utils"`     |
 | `import { Button } from "@/components/ui/button"` | `import { Button } from "./button"` |
 
 Everything else — class names, prop types, primitives — is identical. Components use only peer dependencies and `../utils`, so they are self-contained.
@@ -892,6 +929,7 @@ const devLogStore = globalThis.__devLogStore ?? (globalThis.__devLogStore = crea
 The library is tested locally using npm workspaces, which uses the official resolution path and avoids `npm link` symlink edge cases.
 
 Root `package.json`:
+
 ```json
 {
   "workspaces": ["packages/*"],
@@ -900,6 +938,7 @@ Root `package.json`:
 ```
 
 After `npm install` at the root, npm creates:
+
 ```
 node_modules/next-fetch-panel → packages/next-fetch-panel
 ```

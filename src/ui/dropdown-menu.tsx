@@ -60,12 +60,7 @@ function DropdownMenuItem({ className, ...props }: Menu.Item.Props) {
 }
 
 function DropdownMenuSeparator({ className, ...props }: Menu.Separator.Props) {
-  return (
-    <Menu.Separator
-      className={cn("-mx-1 my-1 h-px bg-border", className)}
-      {...props}
-    />
-  );
+  return <Menu.Separator className={cn("-mx-1 my-1 h-px bg-border", className)} {...props} />;
 }
 
 export {

@@ -33,9 +33,7 @@ async function waitForEntry(page: Page, urlFragment: string): Promise<void> {
 // 1 — Fetch captured end-to-end
 // ---------------------------------------------------------------------------
 
-test("fetch is captured and appears in the panel within 2 s of page load", async ({
-  page,
-}) => {
+test("fetch is captured and appears in the panel within 2 s of page load", async ({ page }) => {
   // The /posts page makes an SSR fetch to jsonplaceholder during rendering.
   await page.goto("/posts");
   await openPanel(page);
@@ -54,18 +52,14 @@ test("fetch is captured and appears in the panel within 2 s of page load", async
 // 2 — Axios interception via fetch adapter
 // ---------------------------------------------------------------------------
 
-test("axios request (fetch adapter) is captured alongside native fetch calls", async ({
-  page,
-}) => {
+test("axios request (fetch adapter) is captured alongside native fetch calls", async ({ page }) => {
   // The /users page uses axios.create({ adapter: "fetch" }), which routes the
   // request through globalThis.fetch — the same patched fetch captured by patch.ts.
   await page.goto("/users");
   await openPanel(page);
 
   await waitForEntry(page, "jsonplaceholder.typicode.com/users");
-  await expect(
-    entryRows(page, "jsonplaceholder.typicode.com/users").first()
-  ).toBeVisible();
+  await expect(entryRows(page, "jsonplaceholder.typicode.com/users").first()).toBeVisible();
 });
 
 // ---------------------------------------------------------------------------
@@ -89,15 +83,11 @@ test("each browser context sees only its own requests", async ({ browser }) => {
 
   // Context A shows /posts, does NOT show /users
   await waitForEntry(pageA, "jsonplaceholder.typicode.com/posts");
-  await expect(
-    entryRows(pageA, "jsonplaceholder.typicode.com/users")
-  ).toHaveCount(0);
+  await expect(entryRows(pageA, "jsonplaceholder.typicode.com/users")).toHaveCount(0);
 
   // Context B shows /users, does NOT show /posts
   await waitForEntry(pageB, "jsonplaceholder.typicode.com/users");
-  await expect(
-    entryRows(pageB, "jsonplaceholder.typicode.com/posts")
-  ).toHaveCount(0);
+  await expect(entryRows(pageB, "jsonplaceholder.typicode.com/posts")).toHaveCount(0);
 
   await ctxA.close();
   await ctxB.close();
@@ -107,9 +97,7 @@ test("each browser context sees only its own requests", async ({ browser }) => {
 // 4 — Snapshot endpoint
 // ---------------------------------------------------------------------------
 
-test("GET /api/dev-network/snapshot returns the session entries as JSON", async ({
-  page,
-}) => {
+test("GET /api/dev-network/snapshot returns the session entries as JSON", async ({ page }) => {
   await page.goto("/posts");
 
   // The page request carries the __dev_sid cookie which the snapshot handler
@@ -123,9 +111,7 @@ test("GET /api/dev-network/snapshot returns the session entries as JSON", async 
   expect(Array.isArray(entries)).toBe(true);
   expect(entries.length).toBeGreaterThan(0);
   expect(
-    entries.some((e: { url: string }) =>
-      e.url.includes("jsonplaceholder.typicode.com/posts")
-    )
+    entries.some((e: { url: string }) => e.url.includes("jsonplaceholder.typicode.com/posts"))
   ).toBe(true);
 });
 
@@ -133,9 +119,7 @@ test("GET /api/dev-network/snapshot returns the session entries as JSON", async 
 // 5 — Middleware sets session cookie
 // ---------------------------------------------------------------------------
 
-test("middleware sets a __dev_sid cookie on the first request", async ({
-  page,
-}) => {
+test("middleware sets a __dev_sid cookie on the first request", async ({ page }) => {
   await page.goto("/");
 
   const cookies = await page.context().cookies("http://localhost:3000");
@@ -156,9 +140,7 @@ test("middleware sets a __dev_sid cookie on the first request", async ({
 // 6 — SSE streams new entries live (real-time, no duplicates)
 // ---------------------------------------------------------------------------
 
-test("new entries stream in live as pages are navigated via SPA links", async ({
-  page,
-}) => {
+test("new entries stream in live as pages are navigated via SPA links", async ({ page }) => {
   // Start on the home page and open the panel BEFORE navigating to content
   // pages. The root layout keeps the panel mounted across client-side navs.
   await page.goto("/");
@@ -186,19 +168,16 @@ test("new entries stream in live as pages are navigated via SPA links", async ({
   await page.click("a[href='/']");
   await page.click("a[href='/posts']");
 
-  await expect(page.locator("[data-nfp] tbody tr")).toHaveCount(
-    countAfterUsers + 1,
-    { timeout: 15_000 }
-  );
+  await expect(page.locator("[data-nfp] tbody tr")).toHaveCount(countAfterUsers + 1, {
+    timeout: 15_000,
+  });
 });
 
 // ---------------------------------------------------------------------------
 // 7 — Filter bar
 // ---------------------------------------------------------------------------
 
-test("filter bar narrows the entry list and clears on × click", async ({
-  page,
-}) => {
+test("filter bar narrows the entry list and clears on × click", async ({ page }) => {
   // Trigger SSR fetches on two distinct pages, then open the panel.
   await page.goto("/posts");
   await page.goto("/users");
@@ -221,7 +200,9 @@ test("filter bar narrows the entry list and clears on × click", async ({
   await expect(page.locator("[data-nfp]").getByText(/\d+ \/ \d+/)).toBeVisible();
 
   // Click the × button inside the filter container to clear it.
-  const filterContainer = page.locator("[data-nfp] input[placeholder='Filter by URL...']").locator("..");
+  const filterContainer = page
+    .locator("[data-nfp] input[placeholder='Filter by URL...']")
+    .locator("..");
   await filterContainer.getByRole("button").click();
 
   // Both entry types are visible again.
@@ -233,9 +214,7 @@ test("filter bar narrows the entry list and clears on × click", async ({
 // 8 — SSE reconnect — no duplicate entries
 // ---------------------------------------------------------------------------
 
-test("SSE reconnect with Last-Event-ID replays only unseen entries", async ({
-  page,
-}) => {
+test("SSE reconnect with Last-Event-ID replays only unseen entries", async ({ page }) => {
   await page.goto("/posts");
   await openPanel(page);
 
@@ -307,9 +286,7 @@ test("Panel useEffect sets __dev_sid cookie when middleware does not provide one
 // 10 — Drag-resize persists to localStorage
 // ---------------------------------------------------------------------------
 
-test("drag-resize changes the panel height and persists after reload", async ({
-  page,
-}) => {
+test("drag-resize changes the panel height and persists after reload", async ({ page }) => {
   await page.goto("/");
   await openPanel(page);
 
@@ -343,8 +320,8 @@ test("drag-resize changes the panel height and persists after reload", async ({
     { timeout: 8_000 }
   );
 
-  const heightAfterDrag = await page.evaluate<number>(() =>
-    JSON.parse(localStorage.getItem("ssr-panel-config") || "{}").height
+  const heightAfterDrag = await page.evaluate<number>(
+    () => JSON.parse(localStorage.getItem("ssr-panel-config") || "{}").height
   );
   expect(heightAfterDrag).toBeGreaterThan(420);
 
@@ -352,8 +329,8 @@ test("drag-resize changes the panel height and persists after reload", async ({
   await page.reload();
   await openPanel(page);
 
-  const heightAfterReload = await page.evaluate<number>(() =>
-    JSON.parse(localStorage.getItem("ssr-panel-config") || "{}").height
+  const heightAfterReload = await page.evaluate<number>(
+    () => JSON.parse(localStorage.getItem("ssr-panel-config") || "{}").height
   );
   expect(heightAfterReload).toBe(heightAfterDrag);
 });

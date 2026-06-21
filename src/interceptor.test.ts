@@ -170,9 +170,7 @@ describe("createDevPanelAxiosInterceptors — response logging", () => {
     const { request, response } = createDevPanelAxiosInterceptors();
     const circular: Record<string, unknown> = {};
     circular["self"] = circular;
-    const config = request(
-      makeConfig("https://api.example.com/data", "post", { data: circular })
-    );
+    const config = request(makeConfig("https://api.example.com/data", "post", { data: circular }));
     await response(makeAxiosResponse(config));
 
     expect(devLogStore.getBuffer()[0].requestBody).toBeNull();

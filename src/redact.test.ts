@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  redactEntry,
-  resolveRedactConfig,
-  defaultRedactConfig,
-  type RedactConfig,
-} from "./redact";
+import { redactEntry, resolveRedactConfig, defaultRedactConfig, type RedactConfig } from "./redact";
 import type { LogEntry } from "./store";
 
 function makeEntry(overrides?: Partial<LogEntry>): LogEntry {
@@ -200,17 +195,19 @@ describe("resolveRedactConfig", () => {
   });
 
   it("accepts a function that extends defaults", () => {
-    const config = resolveRedactConfig(
-      (d) => ({ ...d, urlParams: [...d.urlParams, "shop_token"] })
-    );
+    const config = resolveRedactConfig((d) => ({
+      ...d,
+      urlParams: [...d.urlParams, "shop_token"],
+    }));
     expect(config.urlParams).toContain("shop_token");
     expect(config.urlParams).toContain("api_key");
   });
 
   it("accepts a function that selectively removes a default", () => {
-    const config = resolveRedactConfig(
-      (d) => ({ ...d, headers: d.headers.filter((h) => h !== "authorization") })
-    );
+    const config = resolveRedactConfig((d) => ({
+      ...d,
+      headers: d.headers.filter((h) => h !== "authorization"),
+    }));
     expect(config.headers).not.toContain("authorization");
     expect(config.headers).toContain("x-api-key");
   });

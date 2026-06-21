@@ -58,9 +58,7 @@ describe("withDevPanel", () => {
     const sid = call?.request?.headers?.get("x-dev-sid");
 
     expect(typeof sid).toBe("string");
-    expect(sid).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    );
+    expect(sid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
   });
 
   it("sets the __dev_sid cookie on the response", async () => {
@@ -118,7 +116,11 @@ describe("withDevPanel", () => {
     // The handler was called
     expect(handler).toHaveBeenCalledOnce();
     // Cookie should still be set on the redirect response (no existing cookie)
-    expect(mockCookiesSet).toHaveBeenCalledWith("__dev_sid", expect.any(String), expect.any(Object));
+    expect(mockCookiesSet).toHaveBeenCalledWith(
+      "__dev_sid",
+      expect.any(String),
+      expect.any(Object)
+    );
   });
 
   it("skips session logic when enabled is false but still calls NextResponse.next()", async () => {

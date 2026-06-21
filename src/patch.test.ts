@@ -97,9 +97,7 @@ describe("registerDevPanel — fetch logging", () => {
   });
 
   it("stores an error entry with null status when fetch throws", async () => {
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error("Network failure")
-    );
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network failure"));
     await registerDevPanel();
 
     await expect(globalThis.fetch("https://api.example.com/fail")).rejects.toThrow(
@@ -202,7 +200,10 @@ describe("registerDevPanel — fetch logging", () => {
     await registerDevPanel();
 
     await globalThis.fetch("https://api.example.com/data", {
-      headers: [["accept", "text/plain"], ["x-trace-id", "abc"]],
+      headers: [
+        ["accept", "text/plain"],
+        ["x-trace-id", "abc"],
+      ],
     });
 
     await vi.waitFor(() => expect(devLogStore.getBuffer()).toHaveLength(1));
@@ -301,10 +302,9 @@ describe("registerDevPanel — fetch logging", () => {
     await registerDevPanel();
 
     // Method is read from init?.method, so pass it in init when using a Request input.
-    await globalThis.fetch(
-      new Request("https://api.example.com/request-object"),
-      { method: "DELETE" }
-    );
+    await globalThis.fetch(new Request("https://api.example.com/request-object"), {
+      method: "DELETE",
+    });
 
     await vi.waitFor(() => expect(devLogStore.getBuffer()).toHaveLength(1));
     const [entry] = devLogStore.getBuffer();

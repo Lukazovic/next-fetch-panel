@@ -1,0 +1,7 @@
+dist/
+coverage/
+fixtures/
+node_modules/
+src/panel.styles.ts
+src/panel.styles.tmp.css
+CHANGELOG.md

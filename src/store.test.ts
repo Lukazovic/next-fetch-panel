@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createStore, BUFFER_SIZE, type LogEntry } from "./store";
 
 function makeEntry(overrides?: Partial<LogEntry>): LogEntry {
@@ -156,7 +156,9 @@ describe("createStore", () => {
 
     it("a throwing subscriber does not prevent others from being called", () => {
       const store = createStore();
-      const throwing = vi.fn(() => { throw new Error("boom"); });
+      const throwing = vi.fn(() => {
+        throw new Error("boom");
+      });
       const healthy = vi.fn();
       store.subscribe(throwing);
       store.subscribe(healthy);

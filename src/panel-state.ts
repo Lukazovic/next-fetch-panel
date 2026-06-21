@@ -8,16 +8,24 @@ function notify() {
 export const panelState = {
   subscribe(fn: () => void) {
     listeners.add(fn);
-    return () => { listeners.delete(fn); };
+    return () => {
+      listeners.delete(fn);
+    };
   },
   getSnapshot() {
     return _isOpen;
   },
   open() {
-    if (!_isOpen) { _isOpen = true; notify(); }
+    if (!_isOpen) {
+      _isOpen = true;
+      notify();
+    }
   },
   close() {
-    if (_isOpen) { _isOpen = false; notify(); }
+    if (_isOpen) {
+      _isOpen = false;
+      notify();
+    }
   },
   toggle() {
     _isOpen = !_isOpen;

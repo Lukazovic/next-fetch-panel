@@ -13,6 +13,7 @@
     "debugging"
   ],
   "license": "MIT",
+  "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -53,13 +54,29 @@
     "build": "npm run build:css && tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src playwright.config.ts eslint.config.js",
+    "lint:fix": "eslint src playwright.config.ts eslint.config.js --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "fixture:install": "npm install --prefix fixtures/nextjs-app",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "playwright:install": "playwright install --with-deps chromium"
+    "playwright:install": "playwright install --with-deps chromium",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,yml,yaml,md}": "prettier --write"
   },
   "peerDependencies": {
     "next": ">=15.0.0",
@@ -75,6 +92,7 @@
     "tailwind-merge": "^3.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.0",
     "@tailwindcss/cli": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
@@ -84,10 +102,17 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitest/coverage-v8": "^4.1.9",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.8",
+    "prettier": "^3.8.4",
     "tailwindcss": "^4.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0",
+    "typescript-eslint": "^8.61.1",
     "vitest": "^4.1.9"
   }
 }

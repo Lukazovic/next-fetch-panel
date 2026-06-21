@@ -2,8 +2,8 @@ import { devLogStore, BODY_LIMIT as DEFAULT_BODY_LIMIT } from "./store";
 import { redactEntry, resolveRedactConfig, type RedactInput } from "./redact";
 
 // Cached after first import — module resolution is async but the reference is reused.
-let nextHeaders: typeof import("next/headers")["headers"] | null = null;
-let nextCookies: typeof import("next/headers")["cookies"] | null = null;
+let nextHeaders: (typeof import("next/headers"))["headers"] | null = null;
+let nextCookies: (typeof import("next/headers"))["cookies"] | null = null;
 
 function stringify(data: unknown, bodyLimit: number): string | null {
   if (data == null) return null;
@@ -62,23 +62,26 @@ async function push(
 
   try {
     devLogStore.push(
-      redactEntry({
-        id: `${entry.ts}-${Math.random().toString(36).slice(2, 8)}`,
-        url: entry.url,
-        method: entry.method.toUpperCase(),
-        ts: entry.ts,
-        duration: entry.duration,
-        status: entry.status,
-        statusText: entry.statusText ?? null,
-        error: entry.error,
-        requestHeaders: entry.requestHeaders ?? {},
-        responseHeaders: entry.responseHeaders ?? {},
-        requestBody: entry.requestBody ?? null,
-        responseBody: entry.responseBody ?? null,
-        requestBodyTruncated: entry.requestBodyTruncated,
-        responseBodyTruncated: entry.responseBodyTruncated,
-        sessionId,
-      }, config)
+      redactEntry(
+        {
+          id: `${entry.ts}-${Math.random().toString(36).slice(2, 8)}`,
+          url: entry.url,
+          method: entry.method.toUpperCase(),
+          ts: entry.ts,
+          duration: entry.duration,
+          status: entry.status,
+          statusText: entry.statusText ?? null,
+          error: entry.error,
+          requestHeaders: entry.requestHeaders ?? {},
+          responseHeaders: entry.responseHeaders ?? {},
+          requestBody: entry.requestBody ?? null,
+          responseBody: entry.responseBody ?? null,
+          requestBodyTruncated: entry.requestBodyTruncated,
+          responseBodyTruncated: entry.responseBodyTruncated,
+          sessionId,
+        },
+        config
+      )
     );
   } catch {}
 }
@@ -88,7 +91,11 @@ type Timing = { startTime: number; ts: number; url: string };
 function resolveUrl(config: Record<string, unknown>): string {
   const base = String(config.baseURL ?? "").replace(/\/$/, "");
   const path = String(config.url ?? "");
-  const fullPath = path.startsWith("http") ? path : base ? `${base}/${path.replace(/^\//, "")}` : path;
+  const fullPath = path.startsWith("http")
+    ? path
+    : base
+      ? `${base}/${path.replace(/^\//, "")}`
+      : path;
   if (!fullPath) return "";
 
   const params = config.params;
@@ -131,7 +138,11 @@ function resolveUrl(config: Record<string, unknown>): string {
  *   createDevPanelAxiosInterceptors({ redact: (d) => ({ ...d, bodyKeys: [...d.bodyKeys, "my_field"] }) })
  *   createDevPanelAxiosInterceptors({ redact: { headers: [] } })  // disable header redaction
  */
-export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput; enabled?: boolean; bodyLimit?: number }) {
+export function createDevPanelAxiosInterceptors(options?: {
+  redact?: RedactInput;
+  enabled?: boolean;
+  bodyLimit?: number;
+}) {
   if (options?.enabled === false) {
     return {
       request: <T>(config: T) => config,
@@ -145,7 +156,11 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
   const timings = new WeakMap<object, Timing>();
 
   function request<T extends object>(config: T): T {
-    timings.set(config, { startTime: performance.now(), ts: Date.now(), url: resolveUrl(config as Record<string, unknown>) });
+    timings.set(config, {
+      startTime: performance.now(),
+      ts: Date.now(),
+      url: resolveUrl(config as Record<string, unknown>),
+    });
     return config;
   }
 
@@ -162,20 +177,23 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
       timings.delete(config as object);
       const reqBody = stringify((config as Record<string, unknown>).data, bodyLimit);
       const resBody = stringify(r.data, bodyLimit);
-      await push({
-        url: t.url,
-        method: String((config as Record<string, unknown>).method ?? "GET"),
-        ts: t.ts,
-        duration: Math.round(performance.now() - t.startTime),
-        status: (r.status as number) ?? null,
-        statusText: r.statusText as string | null,
-        requestHeaders: flattenHeaders((config as Record<string, unknown>).headers),
-        responseHeaders: flattenHeaders(r.headers),
-        requestBody: reqBody,
-        responseBody: resBody,
-        requestBodyTruncated: wasTruncated(reqBody, bodyLimit),
-        responseBodyTruncated: wasTruncated(resBody, bodyLimit),
-      }, redactConfig);
+      await push(
+        {
+          url: t.url,
+          method: String((config as Record<string, unknown>).method ?? "GET"),
+          ts: t.ts,
+          duration: Math.round(performance.now() - t.startTime),
+          status: (r.status as number) ?? null,
+          statusText: r.statusText as string | null,
+          requestHeaders: flattenHeaders((config as Record<string, unknown>).headers),
+          responseHeaders: flattenHeaders(r.headers),
+          requestBody: reqBody,
+          responseBody: resBody,
+          requestBodyTruncated: wasTruncated(reqBody, bodyLimit),
+          responseBodyTruncated: wasTruncated(resBody, bodyLimit),
+        },
+        redactConfig
+      );
     }
     return res;
   }
@@ -191,21 +209,24 @@ export function createDevPanelAxiosInterceptors(options?: { redact?: RedactInput
           const errResponse = e.response as Record<string, unknown> | undefined;
           const reqBody = stringify((config as Record<string, unknown>).data, bodyLimit);
           const resBody = stringify(errResponse?.data, bodyLimit);
-          await push({
-            url: t.url,
-            method: String((config as Record<string, unknown>).method ?? "GET"),
-            ts: t.ts,
-            duration: Math.round(performance.now() - t.startTime),
-            status: (errResponse?.status as number) ?? null,
-            statusText: errResponse?.statusText as string | null,
-            error: e.message as string | undefined,
-            requestHeaders: flattenHeaders((config as Record<string, unknown>).headers),
-            responseHeaders: flattenHeaders(errResponse?.headers),
-            requestBody: reqBody,
-            responseBody: resBody,
-            requestBodyTruncated: wasTruncated(reqBody, bodyLimit),
-            responseBodyTruncated: wasTruncated(resBody, bodyLimit),
-          }, redactConfig);
+          await push(
+            {
+              url: t.url,
+              method: String((config as Record<string, unknown>).method ?? "GET"),
+              ts: t.ts,
+              duration: Math.round(performance.now() - t.startTime),
+              status: (errResponse?.status as number) ?? null,
+              statusText: errResponse?.statusText as string | null,
+              error: e.message as string | undefined,
+              requestHeaders: flattenHeaders((config as Record<string, unknown>).headers),
+              responseHeaders: flattenHeaders(errResponse?.headers),
+              requestBody: reqBody,
+              responseBody: resBody,
+              requestBodyTruncated: wasTruncated(reqBody, bodyLimit),
+              responseBodyTruncated: wasTruncated(resBody, bodyLimit),
+            },
+            redactConfig
+          );
         }
       }
     }

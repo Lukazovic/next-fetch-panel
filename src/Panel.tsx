@@ -1,11 +1,27 @@
 "use client";
 
 import panelStyles from "./panel.styles";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { panelState } from "./panel-state";
 import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
-import { CheckIcon, CopyIcon, DownloadIcon, EllipsisIcon, SearchIcon, Settings2Icon, XIcon } from "lucide-react";
+import {
+  CheckIcon,
+  CopyIcon,
+  DownloadIcon,
+  EllipsisIcon,
+  SearchIcon,
+  Settings2Icon,
+  XIcon,
+} from "lucide-react";
 import { cn } from "./utils";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -14,12 +30,22 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./ui/sheet";
 import {
-  Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
 } from "./ui/dialog";
 import { Separator } from "./ui/separator";
 import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "./store";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 const PanelThemeContext = createContext<string>("nfp-theme-light");
 
@@ -55,14 +81,20 @@ function usePanelConfig() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return DEFAULT_CONFIG;
   });
 
   const update = useCallback((patch: Partial<PanelConfig>) => {
     setConfig((prev) => {
       const next = { ...prev, ...patch };
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
       return next;
     });
   }, []);
@@ -89,13 +121,17 @@ function useEffectiveTheme(colorScheme: ColorScheme): "light" | "dark" {
   return systemDark ? "dark" : "light";
 }
 
-
 const METHOD_COLORS: Record<string, string> = {
-  GET: "text-blue-400", POST: "text-violet-400",
-  PUT: "text-orange-400", PATCH: "text-orange-400", DELETE: "text-red-400",
+  GET: "text-blue-400",
+  POST: "text-violet-400",
+  PUT: "text-orange-400",
+  PATCH: "text-orange-400",
+  DELETE: "text-red-400",
 };
 
-function methodClass(m: string) { return METHOD_COLORS[m] ?? "text-slate-400"; }
+function methodClass(m: string) {
+  return METHOD_COLORS[m] ?? "text-slate-400";
+}
 
 function statusClass(status: number | null, error?: string) {
   if (error || status === null) return "text-red-400";
@@ -111,16 +147,21 @@ function durationBarColor(ms: number) {
 }
 
 function formatTs(ts: number) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new Date(ts).toLocaleTimeString("en-US", {
-    hour12: false, hour: "2-digit", minute: "2-digit",
-    second: "2-digit", fractionalSecondDigits: 3,
-  } as any);
+  return new Intl.DateTimeFormat("en-US", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    fractionalSecondDigits: 3,
+  }).format(new Date(ts));
 }
 
 function tryPrettyJson(text: string) {
-  try { return JSON.stringify(JSON.parse(text), null, 2); }
-  catch { return text; }
+  try {
+    return JSON.stringify(JSON.parse(text), null, 2);
+  } catch {
+    return text;
+  }
 }
 
 function formatBytes(n: number) {
@@ -157,7 +198,9 @@ function downloadEntry(entry: LogEntry) {
   const a = document.createElement("a");
   a.href = href;
   let name = "entry";
-  try { name = new URL(entry.url).pathname.split("/").filter(Boolean).pop() || "entry"; } catch {}
+  try {
+    name = new URL(entry.url).pathname.split("/").filter(Boolean).pop() || "entry";
+  } catch {}
   a.download = `${name}-entry.json`;
   a.click();
   URL.revokeObjectURL(href);
@@ -171,7 +214,9 @@ function EntryActionsMenu({ entry }: { entry: LogEntry }) {
   useEffect(() => () => clearTimeout(copiedTimerRef.current), []);
 
   let downloadName = "entry";
-  try { downloadName = new URL(entry.url).pathname.split("/").filter(Boolean).pop() || "entry"; } catch {}
+  try {
+    downloadName = new URL(entry.url).pathname.split("/").filter(Boolean).pop() || "entry";
+  } catch {}
 
   function handleCopyCurl() {
     navigator.clipboard.writeText(toCurl(entry)).then(() => {
@@ -199,13 +244,17 @@ function EntryActionsMenu({ entry }: { entry: LogEntry }) {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {entry.responseBody && (
-          <DropdownMenuItem onClick={() => downloadBody(entry.responseBody!, `${downloadName}-response`)}>
+          <DropdownMenuItem
+            onClick={() => downloadBody(entry.responseBody!, `${downloadName}-response`)}
+          >
             <DownloadIcon className="size-3 shrink-0" />
             Download response body
           </DropdownMenuItem>
         )}
         {entry.requestBody && entry.requestBody !== "[binary]" && (
-          <DropdownMenuItem onClick={() => downloadBody(entry.requestBody!, `${downloadName}-request`)}>
+          <DropdownMenuItem
+            onClick={() => downloadBody(entry.requestBody!, `${downloadName}-request`)}
+          >
             <DownloadIcon className="size-3 shrink-0" />
             Download request body
           </DropdownMenuItem>
@@ -220,8 +269,14 @@ function EntryActionsMenu({ entry }: { entry: LogEntry }) {
 }
 
 function OptionButton({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
@@ -229,7 +284,7 @@ function OptionButton({
         "cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors border",
         active
           ? "bg-primary text-primary-foreground border-primary"
-          : "bg-transparent text-muted-foreground border-border hover:bg-muted hover:text-foreground",
+          : "bg-transparent text-muted-foreground border-border hover:bg-muted hover:text-foreground"
       )}
     >
       {children}
@@ -237,9 +292,12 @@ function OptionButton({
   );
 }
 
-
 function SettingsDialog({
-  config, update, open, onOpenChange, theme,
+  config,
+  update,
+  open,
+  onOpenChange,
+  theme,
 }: {
   config: PanelConfig;
   update: (p: Partial<PanelConfig>) => void;
@@ -257,12 +315,14 @@ function SettingsDialog({
         style={{ maxWidth: 520 }}
         className={cn(
           themeClass,
-          "bg-background text-foreground border-border gap-0 p-0 overflow-hidden",
+          "bg-background text-foreground border-border gap-0 p-0 overflow-hidden"
         )}
         showCloseButton={false}
       >
         <DialogHeader className="px-5 pt-5 pb-4 border-b border-border">
-          <DialogTitle className="text-sm font-semibold text-foreground">Panel Settings</DialogTitle>
+          <DialogTitle className="text-sm font-semibold text-foreground">
+            Panel Settings
+          </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             Preferences are saved to localStorage automatically.
           </DialogDescription>
@@ -274,7 +334,11 @@ function SettingsDialog({
               <p className="font-medium text-foreground">Color scheme</p>
               <div className="flex gap-2">
                 {(["system", "light", "dark"] as ColorScheme[]).map((s) => (
-                  <OptionButton key={s} active={config.colorScheme === s} onClick={() => update({ colorScheme: s })}>
+                  <OptionButton
+                    key={s}
+                    active={config.colorScheme === s}
+                    onClick={() => update({ colorScheme: s })}
+                  >
                     {s.charAt(0).toUpperCase() + s.slice(1)}
                   </OptionButton>
                 ))}
@@ -286,8 +350,18 @@ function SettingsDialog({
             <div className="flex flex-col gap-2">
               <p className="font-medium text-foreground">Display mode</p>
               <div className="flex gap-2">
-                <OptionButton active={config.mode === "sheet"} onClick={() => update({ mode: "sheet" })}>Sheet</OptionButton>
-                <OptionButton active={config.mode === "fixed"} onClick={() => update({ mode: "fixed" })}>Fixed modal</OptionButton>
+                <OptionButton
+                  active={config.mode === "sheet"}
+                  onClick={() => update({ mode: "sheet" })}
+                >
+                  Sheet
+                </OptionButton>
+                <OptionButton
+                  active={config.mode === "fixed"}
+                  onClick={() => update({ mode: "fixed" })}
+                >
+                  Fixed modal
+                </OptionButton>
               </div>
             </div>
 
@@ -299,7 +373,11 @@ function SettingsDialog({
                   <p className="font-medium text-foreground">Sheet side</p>
                   <div className="flex gap-2 flex-wrap">
                     {(["bottom", "right", "top", "left"] as SheetSide[]).map((s) => (
-                      <OptionButton key={s} active={config.sheetSide === s} onClick={() => update({ sheetSide: s })}>
+                      <OptionButton
+                        key={s}
+                        active={config.sheetSide === s}
+                        onClick={() => update({ sheetSide: s })}
+                      >
                         {s.charAt(0).toUpperCase() + s.slice(1)}
                       </OptionButton>
                     ))}
@@ -309,10 +387,16 @@ function SettingsDialog({
                 <div className="flex flex-col gap-2">
                   <p className="font-medium text-foreground">Page interaction</p>
                   <div className="flex gap-2">
-                    <OptionButton active={!config.sheetModal} onClick={() => update({ sheetModal: false })}>
+                    <OptionButton
+                      active={!config.sheetModal}
+                      onClick={() => update({ sheetModal: false })}
+                    >
                       Allow (non-modal)
                     </OptionButton>
-                    <OptionButton active={config.sheetModal} onClick={() => update({ sheetModal: true })}>
+                    <OptionButton
+                      active={config.sheetModal}
+                      onClick={() => update({ sheetModal: true })}
+                    >
                       Block (modal)
                     </OptionButton>
                   </div>
@@ -326,7 +410,13 @@ function SettingsDialog({
         </ScrollArea>
 
         <div className="flex justify-end border-t border-border px-5 py-3">
-          <DialogClose render={<Button variant="outline" size="sm">Close</Button>} />
+          <DialogClose
+            render={
+              <Button variant="outline" size="sm">
+                Close
+              </Button>
+            }
+          />
         </div>
       </DialogContent>
     </Dialog>
@@ -335,13 +425,14 @@ function SettingsDialog({
 
 function HeaderList({ headers }: { headers: Record<string, string> | undefined | null }) {
   const entries = Object.entries(headers ?? {});
-  if (entries.length === 0)
-    return <p className="text-muted-foreground text-[11px]">No headers</p>;
+  if (entries.length === 0) return <p className="text-muted-foreground text-[11px]">No headers</p>;
   return (
     <div className="flex flex-col divide-y divide-border">
       {entries.map(([k, v]) => (
         <div key={k} className="py-1.5">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">{k}</p>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+            {k}
+          </p>
           <p className="text-[11px] text-foreground break-all leading-relaxed">{v}</p>
         </div>
       ))}
@@ -349,14 +440,21 @@ function HeaderList({ headers }: { headers: Record<string, string> | undefined |
   );
 }
 
-function BodyViewer({ body, contentType, emptyLabel, downloadName }: {
+function BodyViewer({
+  body,
+  contentType,
+  emptyLabel,
+  downloadName,
+}: {
   body: string | null | undefined;
   contentType: string | null;
   emptyLabel: string;
   downloadName?: string;
 }) {
-  const [revealed, setRevealed] = useState(false);
-  useEffect(() => { setRevealed(false); }, [body]);
+  // Track which body string the user has chosen to render — implicitly resets
+  // when body changes because the new value won't equal the stored one.
+  const [revealedBody, setRevealedBody] = useState<string | null>(null);
+  const revealed = revealedBody !== null && revealedBody === body;
 
   if (!body) return <p className="text-muted-foreground text-[11px]">{emptyLabel}</p>;
 
@@ -367,11 +465,21 @@ function BodyViewer({ body, contentType, emptyLabel, downloadName }: {
           Body is large ({formatBytes(body.length)}) and may freeze the panel when rendered.
         </p>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => setRevealed(true)}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-[11px] h-7"
+            onClick={() => setRevealedBody(body)}
+          >
             Render anyway
           </Button>
           {downloadName && (
-            <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => downloadBody(body, downloadName)}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-[11px] h-7"
+              onClick={() => downloadBody(body, downloadName)}
+            >
               Download
             </Button>
           )}
@@ -380,7 +488,10 @@ function BodyViewer({ body, contentType, emptyLabel, downloadName }: {
     );
   }
 
-  const isJson = contentType?.includes("json") || body.trimStart().startsWith("{") || body.trimStart().startsWith("[");
+  const isJson =
+    contentType?.includes("json") ||
+    body.trimStart().startsWith("{") ||
+    body.trimStart().startsWith("[");
   return (
     <pre className="text-[11px] text-foreground whitespace-pre-wrap break-all leading-relaxed">
       {isJson ? tryPrettyJson(body) : body}
@@ -388,7 +499,11 @@ function BodyViewer({ body, contentType, emptyLabel, downloadName }: {
   );
 }
 
-function BodyTruncatedNotice({ kind, captured, contentLength }: {
+function BodyTruncatedNotice({
+  kind,
+  captured,
+  contentLength,
+}: {
   kind: "Request" | "Response";
   captured: number;
   contentLength?: number | null;
@@ -397,11 +512,15 @@ function BodyTruncatedNotice({ kind, captured, contentLength }: {
     <div className="rounded border border-yellow-500/30 bg-yellow-500/5 px-2.5 py-2 flex flex-col gap-1">
       <p className="text-[11px] font-semibold text-yellow-500">{kind} body truncated</p>
       <p className="text-[11px] text-muted-foreground">
-        {contentLength != null
-          ? <>~{formatBytes(captured)} of ~{formatBytes(contentLength)} were captured.</>
-          : <>~{formatBytes(captured)} were captured.</>
-        }
-        {" "}Increase <code className="font-mono">bodyLimit</code> in your project config to capture more.
+        {contentLength != null ? (
+          <>
+            ~{formatBytes(captured)} of ~{formatBytes(contentLength)} were captured.
+          </>
+        ) : (
+          <>~{formatBytes(captured)} were captured.</>
+        )}{" "}
+        Increase <code className="font-mono">bodyLimit</code> in your project config to capture
+        more.
       </p>
     </div>
   );
@@ -409,7 +528,11 @@ function BodyTruncatedNotice({ kind, captured, contentLength }: {
 
 function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void }) {
   let pathname = entry.url;
-  try { pathname = new URL(entry.url).pathname; } catch { /* keep full url */ }
+  try {
+    pathname = new URL(entry.url).pathname;
+  } catch {
+    /* keep full url */
+  }
   const downloadName = pathname.split("/").filter(Boolean).pop() || "response";
 
   return (
@@ -418,15 +541,29 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
         <span className="truncate text-[11px] font-semibold text-foreground" title={entry.url}>
           {pathname}
         </span>
-        <Button variant="ghost" size="icon-xs" className="shrink-0 text-muted-foreground" onClick={onClose}>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="shrink-0 text-muted-foreground"
+          onClick={onClose}
+        >
           ✕
         </Button>
       </div>
 
       <Tabs defaultValue="general" className="flex flex-col flex-1 overflow-hidden gap-0">
-        <TabsList variant="line" className="shrink-0 w-full justify-start rounded-none border-b border-border bg-transparent h-auto px-1 overflow-x-auto scrollbar-none">
+        <TabsList
+          variant="line"
+          className="shrink-0 w-full justify-start rounded-none border-b border-border bg-transparent h-auto px-1 overflow-x-auto scrollbar-none"
+        >
           {(["general", "headers", "payload", "response"] as const).map((v) => (
-            <TabsTrigger key={v} value={v} className="text-[11px] capitalize px-2.5 py-1.5 rounded-none text-muted-foreground data-active:text-foreground data-active:font-semibold">{v}</TabsTrigger>
+            <TabsTrigger
+              key={v}
+              value={v}
+              className="text-[11px] capitalize px-2.5 py-1.5 rounded-none text-muted-foreground data-active:text-foreground data-active:font-semibold"
+            >
+              {v}
+            </TabsTrigger>
           ))}
         </TabsList>
 
@@ -438,36 +575,54 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
                   <BodyTruncatedNotice
                     kind="Response"
                     captured={entry.responseBody?.length ?? 0}
-                    contentLength={Number.isFinite(Number(entry.responseHeaders?.["content-length"])) ? Number(entry.responseHeaders!["content-length"]) : null}
+                    contentLength={
+                      Number.isFinite(Number(entry.responseHeaders?.["content-length"]))
+                        ? Number(entry.responseHeaders!["content-length"])
+                        : null
+                    }
                   />
                 )}
                 {entry.requestBodyTruncated && (
-                  <BodyTruncatedNotice
-                    kind="Request"
-                    captured={entry.requestBody?.length ?? 0}
-                  />
+                  <BodyTruncatedNotice kind="Request" captured={entry.requestBody?.length ?? 0} />
                 )}
-                {([
-                  ["Request URL",    entry.url],
-                  ["Request Method", entry.method],
-                  ["Status Code",    entry.status != null ? `${entry.status}${entry.statusText ? " " + entry.statusText : ""}` : "—"],
-                  ["Started at",     formatTs(entry.ts)],
-                  ["Duration",       `${entry.duration}ms`],
-                  ...(entry.error ? [["Error", entry.error]] : []),
-                ] as [string, string][]).map(([label, value]) => (
+                {(
+                  [
+                    ["Request URL", entry.url],
+                    ["Request Method", entry.method],
+                    [
+                      "Status Code",
+                      entry.status != null
+                        ? `${entry.status}${entry.statusText ? " " + entry.statusText : ""}`
+                        : "—",
+                    ],
+                    ["Started at", formatTs(entry.ts)],
+                    ["Duration", `${entry.duration}ms`],
+                    ...(entry.error ? [["Error", entry.error]] : []),
+                  ] as [string, string][]
+                ).map(([label, value]) => (
                   <div key={label}>
                     <p className="text-muted-foreground mb-0.5">{label}</p>
-                    <p className={cn("break-all leading-relaxed",
-                      label === "Status Code" ? statusClass(entry.status, entry.error)
-                        : label === "Error" ? "text-red-400" : "text-foreground"
-                    )}>{value}</p>
+                    <p
+                      className={cn(
+                        "break-all leading-relaxed",
+                        label === "Status Code"
+                          ? statusClass(entry.status, entry.error)
+                          : label === "Error"
+                            ? "text-red-400"
+                            : "text-foreground"
+                      )}
+                    >
+                      {value}
+                    </p>
                   </div>
                 ))}
                 <div>
                   <p className="text-muted-foreground mb-1.5">Duration bar</p>
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className={cn("h-full rounded-full", durationBarColor(entry.duration))}
-                      style={{ width: `${Math.min((entry.duration / 2000) * 100, 100)}%` }} />
+                    <div
+                      className={cn("h-full rounded-full", durationBarColor(entry.duration))}
+                      style={{ width: `${Math.min((entry.duration / 2000) * 100, 100)}%` }}
+                    />
                   </div>
                   <p className="text-[10px] text-muted-foreground/50 mt-1">scale: 0–2000ms</p>
                 </div>
@@ -478,9 +633,14 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
           <TabsContent value="headers" className="h-full m-0">
             <ScrollArea className="h-full">
               <div className="flex flex-col gap-4 p-3">
-                {[["Response Headers", entry.responseHeaders], ["Request Headers", entry.requestHeaders]].map(([label, hdrs]) => (
+                {[
+                  ["Response Headers", entry.responseHeaders],
+                  ["Request Headers", entry.requestHeaders],
+                ].map(([label, hdrs]) => (
                   <div key={label as string}>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">{label as string}</p>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+                      {label as string}
+                    </p>
                     <HeaderList headers={hdrs as Record<string, string>} />
                   </div>
                 ))}
@@ -491,7 +651,12 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
           <TabsContent value="payload" className="h-full m-0">
             <ScrollArea className="h-full">
               <div className="p-3">
-                <BodyViewer body={entry.requestBody} contentType={entry.requestHeaders?.["content-type"] ?? null} emptyLabel="No request body" downloadName={downloadName} />
+                <BodyViewer
+                  body={entry.requestBody}
+                  contentType={entry.requestHeaders?.["content-type"] ?? null}
+                  emptyLabel="No request body"
+                  downloadName={downloadName}
+                />
               </div>
             </ScrollArea>
           </TabsContent>
@@ -499,7 +664,12 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
           <TabsContent value="response" className="h-full m-0">
             <ScrollArea className="h-full">
               <div className="p-3">
-                <BodyViewer body={entry.responseBody} contentType={entry.responseHeaders?.["content-type"] ?? null} emptyLabel="No response body" downloadName={downloadName} />
+                <BodyViewer
+                  body={entry.responseBody}
+                  contentType={entry.responseHeaders?.["content-type"] ?? null}
+                  emptyLabel="No response body"
+                  downloadName={downloadName}
+                />
               </div>
             </ScrollArea>
           </TabsContent>
@@ -510,8 +680,15 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
 }
 
 function PanelInner({
-  entries, selected, setSelected, onClear, onOpenSettings, onClose, bottomRef,
-  detailSize, onDetailSizeChange,
+  entries,
+  selected,
+  setSelected,
+  onClear,
+  onOpenSettings,
+  onClose,
+  bottomRef,
+  detailSize,
+  onDetailSizeChange,
 }: {
   entries: LogEntry[];
   selected: LogEntry | null;
@@ -539,7 +716,9 @@ function PanelInner({
   const detailSizeRef = useRef(detailSize);
   const wasSelectedRef = useRef(false);
 
-  useEffect(() => { detailSizeRef.current = detailSize; }, [detailSize]);
+  useEffect(() => {
+    detailSizeRef.current = detailSize;
+  }, [detailSize]);
 
   useEffect(() => {
     if (selected && !wasSelectedRef.current) {
@@ -568,13 +747,23 @@ function PanelInner({
           )}
         </span>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon-xs" className="text-muted-foreground" onClick={onOpenSettings}>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="text-muted-foreground"
+            onClick={onOpenSettings}
+          >
             <Settings2Icon />
           </Button>
           <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={onClear}>
             Clear
           </Button>
-          <Button variant="ghost" size="icon-xs" className="text-muted-foreground ml-1" onClick={onClose}>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="text-muted-foreground ml-1"
+            onClick={onClose}
+          >
             <XIcon />
           </Button>
         </div>
@@ -592,7 +781,10 @@ function PanelInner({
             className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
           />
           {filter && (
-            <button onClick={() => setFilter("")} className="text-muted-foreground hover:text-foreground">
+            <button
+              onClick={() => setFilter("")}
+              className="text-muted-foreground hover:text-foreground"
+            >
               <XIcon className="size-3" />
             </button>
           )}
@@ -614,13 +806,19 @@ function PanelInner({
               <thead>
                 <tr className="sticky top-0 z-10 bg-background border-b border-border">
                   {[
-                    { label: "Method",   cls: "w-[58px] text-left"  },
-                    { label: "Status",   cls: "w-[52px] text-left"  },
-                    { label: "URL",      cls: "text-left"           },
+                    { label: "Method", cls: "w-[58px] text-left" },
+                    { label: "Status", cls: "w-[52px] text-left" },
+                    { label: "URL", cls: "text-left" },
                     { label: "Duration", cls: "w-[68px] text-right" },
-                    { label: "",         cls: "w-[52px]"            },
+                    { label: "", cls: "w-[52px]" },
                   ].map(({ label, cls }) => (
-                    <th key={label} className={cn("px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap", cls)}>
+                    <th
+                      key={label}
+                      className={cn(
+                        "px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap",
+                        cls
+                      )}
+                    >
                       {label}
                     </th>
                   ))}
@@ -643,16 +841,26 @@ function PanelInner({
                         onClick={() => setSelected(isSelected ? null : entry)}
                         className={cn(
                           "cursor-pointer border-b border-border transition-colors",
-                          isSelected ? "bg-primary/15"
-                            : entry.error ? "bg-destructive/5 hover:bg-destructive/10"
-                            : "hover:bg-muted/40"
+                          isSelected
+                            ? "bg-primary/15"
+                            : entry.error
+                              ? "bg-destructive/5 hover:bg-destructive/10"
+                              : "hover:bg-muted/40"
                         )}
                       >
                         <td className="px-2.5 py-1.25 whitespace-nowrap">
-                          <span className={cn("font-semibold text-[11px]", methodClass(entry.method))}>{entry.method}</span>
+                          <span
+                            className={cn("font-semibold text-[11px]", methodClass(entry.method))}
+                          >
+                            {entry.method}
+                          </span>
                         </td>
                         <td className="px-2.5 py-1.25 whitespace-nowrap">
-                          <span className={cn("font-semibold", statusClass(entry.status, entry.error))}>{entry.status ?? "ERR"}</span>
+                          <span
+                            className={cn("font-semibold", statusClass(entry.status, entry.error))}
+                          >
+                            {entry.status ?? "ERR"}
+                          </span>
                         </td>
                         <td className="px-2.5 py-1.25 max-w-50 overflow-hidden text-ellipsis whitespace-nowrap text-foreground/80">
                           {entry.url}
@@ -660,7 +868,10 @@ function PanelInner({
                         <td className="px-2.5 py-1.25 text-right whitespace-nowrap text-muted-foreground">
                           {entry.duration}ms
                         </td>
-                        <td className="px-2 py-1.25 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <td
+                          className="px-2 py-1.25 whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <EntryActionsMenu entry={entry} />
                         </td>
                       </tr>
@@ -708,10 +919,10 @@ function SheetResizeHandle({
 
     function onMove(ev: PointerEvent) {
       let size: number;
-      if (side === "bottom")     size = window.innerHeight - ev.clientY;
-      else if (side === "top")   size = ev.clientY;
+      if (side === "bottom") size = window.innerHeight - ev.clientY;
+      else if (side === "top") size = ev.clientY;
       else if (side === "right") size = window.innerWidth - ev.clientX;
-      else                       size = ev.clientX;
+      else size = ev.clientX;
       const max = isHorizontal
         ? Math.round(window.innerHeight * 0.9)
         : Math.round(window.innerWidth * 0.9);
@@ -731,16 +942,14 @@ function SheetResizeHandle({
     <div
       className={cn(
         "group/resize shrink-0 flex items-center justify-center select-none touch-none",
-        isHorizontal
-          ? "h-2 w-full cursor-ns-resize"
-          : "w-2 self-stretch cursor-ew-resize",
+        isHorizontal ? "h-2 w-full cursor-ns-resize" : "w-2 self-stretch cursor-ew-resize"
       )}
       onPointerDown={handlePointerDown}
     >
       <div
         className={cn(
           "rounded-full bg-border opacity-0 transition-opacity group-hover/resize:opacity-100",
-          isHorizontal ? "h-1 w-8" : "w-1 h-8",
+          isHorizontal ? "h-1 w-8" : "w-1 h-8"
         )}
       />
     </div>
@@ -766,14 +975,20 @@ function FixedResizeHandle({
       let w = rect.width;
       let h = rect.height;
 
-      if (direction === "top")         h = rect.bottom - ev.clientY;
+      if (direction === "top") h = rect.bottom - ev.clientY;
       else if (direction === "bottom") h = ev.clientY - rect.top;
-      else if (direction === "left")   w = rect.right - ev.clientX;
-      else                             w = ev.clientX - rect.left;
+      else if (direction === "left") w = rect.right - ev.clientX;
+      else w = ev.clientX - rect.left;
 
       onResize(
-        Math.min(Math.round(window.innerWidth * FIXED_MAX_WIDTH_FRACTION), Math.max(FIXED_MIN_WIDTH_PX, Math.round(w))),
-        Math.min(Math.round(window.innerHeight * FIXED_MAX_HEIGHT_FRACTION), Math.max(FIXED_MIN_HEIGHT_PX, Math.round(h))),
+        Math.min(
+          Math.round(window.innerWidth * FIXED_MAX_WIDTH_FRACTION),
+          Math.max(FIXED_MIN_WIDTH_PX, Math.round(w))
+        ),
+        Math.min(
+          Math.round(window.innerHeight * FIXED_MAX_HEIGHT_FRACTION),
+          Math.max(FIXED_MIN_HEIGHT_PX, Math.round(h))
+        )
       );
     }
 
@@ -794,14 +1009,14 @@ function FixedResizeHandle({
         direction === "top" && "top-0",
         direction === "bottom" && "bottom-0",
         direction === "left" && "left-0",
-        direction === "right" && "right-0",
+        direction === "right" && "right-0"
       )}
       onPointerDown={handlePointerDown}
     >
       <div
         className={cn(
           "rounded-full bg-border opacity-0 transition-opacity group-hover/resize:opacity-100",
-          isHorizontal ? "h-1 w-8" : "w-1 h-8",
+          isHorizontal ? "h-1 w-8" : "w-1 h-8"
         )}
       />
     </div>
@@ -819,22 +1034,30 @@ export type ButtonPosition =
 const BUTTON_POSITION_CLASSES: Record<ButtonPosition, string> = {
   "bottom-right": "bottom-4 right-4",
   "bottom-center": "bottom-4 left-1/2 -translate-x-1/2",
-  "bottom-left":  "bottom-4 left-4",
-  "top-right":    "top-4 right-4",
-  "top-center":   "top-4 left-1/2 -translate-x-1/2",
-  "top-left":     "top-4 left-4",
+  "bottom-left": "bottom-4 left-4",
+  "top-right": "top-4 right-4",
+  "top-center": "top-4 left-1/2 -translate-x-1/2",
+  "top-left": "top-4 left-4",
 };
 
 const FIXED_PANEL_POSITION_CLASSES: Record<ButtonPosition, string> = {
   "bottom-right": "bottom-14 right-4",
   "bottom-center": "bottom-14 left-1/2 -translate-x-1/2",
-  "bottom-left":  "bottom-14 left-4",
-  "top-right":    "top-14 right-4",
-  "top-center":   "top-14 left-1/2 -translate-x-1/2",
-  "top-left":     "top-14 left-4",
+  "bottom-left": "bottom-14 left-4",
+  "top-right": "top-14 right-4",
+  "top-center": "top-14 left-1/2 -translate-x-1/2",
+  "top-left": "top-14 left-4",
 };
 
-function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleButton: boolean; buttonPosition: ButtonPosition; bufferSize: number }) {
+function Panel({
+  showToggleButton,
+  buttonPosition,
+  bufferSize,
+}: {
+  showToggleButton: boolean;
+  buttonPosition: ButtonPosition;
+  bufferSize: number;
+}) {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const open = useSyncExternalStore(panelState.subscribe, panelState.getSnapshot, () => false);
   const [selected, setSelected] = useState<LogEntry | null>(null);
@@ -873,7 +1096,9 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
       const es = new EventSource("/api/dev-network");
       current = es;
 
-      es.onopen = () => { retryDelay = 1_000; };
+      es.onopen = () => {
+        retryDelay = 1_000;
+      };
 
       es.onmessage = (event) => {
         try {
@@ -886,7 +1111,9 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
             const next = [...prev, entry];
             return next.length > bufferSize ? next.slice(-bufferSize) : next;
           });
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       };
 
       es.onerror = () => {
@@ -909,6 +1136,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
       clearTimeout(retryTimeout);
       current?.close();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleClear() {
@@ -933,7 +1161,10 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
   }, [entries, open, selected]);
 
   const innerProps = {
-    entries, selected, setSelected, onClear: handleClear,
+    entries,
+    selected,
+    setSelected,
+    onClear: handleClear,
     onOpenSettings: () => setSettingsOpen(true),
     onClose: panelState.close,
     bottomRef,
@@ -954,15 +1185,20 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
   return (
     <PanelThemeContext.Provider value={themeClass}>
       <SettingsDialog
-        config={config} update={update}
-        open={settingsOpen} onOpenChange={setSettingsOpen}
+        config={config}
+        update={update}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
         theme={theme}
       />
 
       {config.mode === "sheet" && (
         <Sheet
           open={open}
-          onOpenChange={(next) => { if (next) panelState.open(); else if (config.sheetModal) panelState.close(); }}
+          onOpenChange={(next) => {
+            if (next) panelState.open();
+            else if (config.sheetModal) panelState.close();
+          }}
           modal={config.sheetModal}
         >
           <SheetContent
@@ -973,7 +1209,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
             className={cn(
               themeClass,
               "bg-background text-foreground border-border font-mono text-xs gap-0 p-0",
-              !isHorizontal && "flex-row",
+              !isHorizontal && "flex-row"
             )}
             style={sheetSize}
           >
@@ -984,20 +1220,27 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
             {(config.sheetSide === "bottom" || config.sheetSide === "right") && (
               <SheetResizeHandle
                 side={config.sheetSide}
-                onResize={(size) => isHorizontal ? update({ height: size }) : update({ width: size })}
+                onResize={(size) =>
+                  isHorizontal ? update({ height: size }) : update({ width: size })
+                }
               />
             )}
 
-            {isHorizontal
-              ? <PanelInner {...innerProps} />
-              : <div className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-0"><PanelInner {...innerProps} /></div>
-            }
+            {isHorizontal ? (
+              <PanelInner {...innerProps} />
+            ) : (
+              <div className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-0">
+                <PanelInner {...innerProps} />
+              </div>
+            )}
 
             {/* Handle at end edge: bottom of top-sheet, right of left-sheet */}
             {(config.sheetSide === "top" || config.sheetSide === "left") && (
               <SheetResizeHandle
                 side={config.sheetSide}
-                onResize={(size) => isHorizontal ? update({ height: size }) : update({ width: size })}
+                onResize={(size) =>
+                  isHorizontal ? update({ height: size }) : update({ width: size })
+                }
               />
             )}
           </SheetContent>
@@ -1008,13 +1251,33 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
         <div
           ref={fixedPanelRef}
           data-nfp
-          className={cn(themeClass, "fixed z-9998 flex flex-col rounded-lg border border-border bg-background text-foreground font-mono text-xs shadow-2xl", FIXED_PANEL_POSITION_CLASSES[buttonPosition])}
+          className={cn(
+            themeClass,
+            "fixed z-9998 flex flex-col rounded-lg border border-border bg-background text-foreground font-mono text-xs shadow-2xl",
+            FIXED_PANEL_POSITION_CLASSES[buttonPosition]
+          )}
           style={{ width: config.width, height: config.height }}
         >
-          <FixedResizeHandle direction="top"    panelRef={fixedPanelRef} onResize={(w, h) => update({ width: w, height: h })} />
-          <FixedResizeHandle direction="bottom" panelRef={fixedPanelRef} onResize={(w, h) => update({ width: w, height: h })} />
-          <FixedResizeHandle direction="left"   panelRef={fixedPanelRef} onResize={(w, h) => update({ width: w, height: h })} />
-          <FixedResizeHandle direction="right"  panelRef={fixedPanelRef} onResize={(w, h) => update({ width: w, height: h })} />
+          <FixedResizeHandle
+            direction="top"
+            panelRef={fixedPanelRef}
+            onResize={(w, h) => update({ width: w, height: h })}
+          />
+          <FixedResizeHandle
+            direction="bottom"
+            panelRef={fixedPanelRef}
+            onResize={(w, h) => update({ width: w, height: h })}
+          />
+          <FixedResizeHandle
+            direction="left"
+            panelRef={fixedPanelRef}
+            onResize={(w, h) => update({ width: w, height: h })}
+          />
+          <FixedResizeHandle
+            direction="right"
+            panelRef={fixedPanelRef}
+            onResize={(w, h) => update({ width: w, height: h })}
+          />
           <PanelInner {...innerProps} />
         </div>
       )}
@@ -1024,13 +1287,20 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: { showToggleBut
           <Button
             variant="outline"
             size="sm"
-            className={cn("fixed z-9999 font-mono gap-1.5 shadow-md dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800", BUTTON_POSITION_CLASSES[buttonPosition])}
+            className={cn(
+              "fixed z-9999 font-mono gap-1.5 shadow-md dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800",
+              BUTTON_POSITION_CLASSES[buttonPosition]
+            )}
             onClick={panelState.open}
           >
-            <span className={entries.length > 0 ? "text-green-500" : "text-muted-foreground"}>●</span>
+            <span className={entries.length > 0 ? "text-green-500" : "text-muted-foreground"}>
+              ●
+            </span>
             Server Network
             {entries.length > 0 && (
-              <Badge variant="secondary" className="ml-0.5 tabular-nums">{entries.length}</Badge>
+              <Badge variant="secondary" className="ml-0.5 tabular-nums">
+                {entries.length}
+              </Badge>
             )}
           </Button>
         </div>
@@ -1060,10 +1330,18 @@ export default function DevNetworkPanel({
   buttonPosition?: ButtonPosition;
   bufferSize?: number;
 }) {
-  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   if (!enabled || !mounted) return null;
   return createPortal(
-    <Panel showToggleButton={showToggleButton} buttonPosition={buttonPosition} bufferSize={bufferSize} />,
+    <Panel
+      showToggleButton={showToggleButton}
+      buttonPosition={buttonPosition}
+      bufferSize={bufferSize}
+    />,
     document.body
   );
 }

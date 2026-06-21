@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // panel-state.ts holds module-level mutable state (_isOpen, listeners).
 // Reset modules before each test so every test starts with a fresh instance.

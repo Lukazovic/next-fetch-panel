@@ -24,25 +24,25 @@ npm run test:e2e                # Playwright E2E (requires npm run build first)
 
 ## Test layers
 
-| Layer | Runner | Location | When to add tests |
-|-------|--------|----------|-------------------|
-| Unit | Vitest | `src/*.test.ts` | Pure functions, new helpers, store logic |
-| Integration | Vitest | `src/*.test.ts` | Modules wired together, Next.js APIs mocked |
-| UI | Vitest + RTL | `src/Panel.test.tsx` | New Panel behavior, interactions, state changes |
-| E2E | Playwright | `playwright/e2e.spec.ts` | Full-stack flows, SSE streaming, browser behavior |
+| Layer       | Runner       | Location                 | When to add tests                                 |
+| ----------- | ------------ | ------------------------ | ------------------------------------------------- |
+| Unit        | Vitest       | `src/*.test.ts`          | Pure functions, new helpers, store logic          |
+| Integration | Vitest       | `src/*.test.ts`          | Modules wired together, Next.js APIs mocked       |
+| UI          | Vitest + RTL | `src/Panel.test.tsx`     | New Panel behavior, interactions, state changes   |
+| E2E         | Playwright   | `playwright/e2e.spec.ts` | Full-stack flows, SSE streaming, browser behavior |
 
 Prefer unit and integration tests over E2E. Only reach for E2E when the behavior genuinely requires a real browser and a running Next.js server.
 
 ## What to test for each type of change
 
-| Change | Required tests |
-|--------|---------------|
-| New function in `store.ts`, `redact.ts`, `panel-state.ts` | Unit test in the corresponding `*.test.ts` |
-| Change to `patch.ts` or `interceptor.ts` | Integration test: push a fake fetch/axios call, assert the store entry |
-| Change to `route.ts` | Integration test: SSE stream or snapshot response shape |
-| Change to `middleware.ts` | Integration test: cookie/header behavior via `MockNextRequest` |
-| New Panel UI behavior | RTL test in `Panel.test.tsx` using `pushEntry` / `openPanel` helpers |
-| Full-stack flow (SSE, session isolation, cookies) | Playwright test in `playwright/e2e.spec.ts` |
+| Change                                                    | Required tests                                                         |
+| --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| New function in `store.ts`, `redact.ts`, `panel-state.ts` | Unit test in the corresponding `*.test.ts`                             |
+| Change to `patch.ts` or `interceptor.ts`                  | Integration test: push a fake fetch/axios call, assert the store entry |
+| Change to `route.ts`                                      | Integration test: SSE stream or snapshot response shape                |
+| Change to `middleware.ts`                                 | Integration test: cookie/header behavior via `MockNextRequest`         |
+| New Panel UI behavior                                     | RTL test in `Panel.test.tsx` using `pushEntry` / `openPanel` helpers   |
+| Full-stack flow (SSE, session isolation, cookies)         | Playwright test in `playwright/e2e.spec.ts`                            |
 
 ## Existing test infrastructure
 
@@ -55,11 +55,11 @@ Prefer unit and integration tests over E2E. Only reach for E2E when the behavior
 
 Mock only what you cannot control — external boundaries, not your own code.
 
-| Mock | Reason |
-|------|--------|
-| `next/headers`, `next/server` | Next.js server APIs not available in Node test environment |
-| `EventSource` | Browser API not available in jsdom |
-| `navigator.clipboard`, `scrollIntoView` | Browser APIs not available in jsdom |
+| Mock                                    | Reason                                                     |
+| --------------------------------------- | ---------------------------------------------------------- |
+| `next/headers`, `next/server`           | Next.js server APIs not available in Node test environment |
+| `EventSource`                           | Browser API not available in jsdom                         |
+| `navigator.clipboard`, `scrollIntoView` | Browser APIs not available in jsdom                        |
 | `globalThis.fetch` (in `patch.test.ts`) | The patch itself replaces fetch — use a real fake response |
 
 Do **not** mock `devLogStore`, `panelState`, or `redactEntry`. These are pure in-process modules — test them through real calls so the integration is actually verified. If you find yourself mocking internal modules to make a test pass, the test is probably testing the wrong thing.
