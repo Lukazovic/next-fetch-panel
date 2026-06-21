@@ -375,6 +375,22 @@ await registerDevPanel({ bufferSize: 2000 });
 
 ---
 
+## Development & testing
+
+```bash
+# Unit, integration, and UI tests (Vitest)
+npm test
+
+# E2E tests — Playwright + real Next.js dev server
+npm run fixture:install   # one-time: installs the fixture app dependencies
+npm run test:e2e          # runs all Playwright tests
+npm run test:e2e:ui       # opens the Playwright UI
+```
+
+E2E tests run against `fixtures/nextjs-app/`, a self-contained Next.js app wired to the local build via `"next-fetch-panel": "file:../.."`. Build the library first (`npm run build`) to ensure `dist/` is current; use `npm run dev` for watch mode during development.
+
+---
+
 ## Public API
 
 ```ts

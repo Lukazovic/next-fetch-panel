@@ -18,6 +18,7 @@ For integration instructions, see [README.md](./README.md).
 - [Panel UI](#panel-ui)
 - [Configuration](#configuration)
 - [Technical Notes & Gotchas](#technical-notes--gotchas)
+- [Testing](#testing)
 - [Package Architecture](#package-architecture)
 - [Why a Compiled Library?](#why-a-compiled-library)
 - [Build Configuration](#build-configuration)
@@ -586,27 +587,125 @@ The settings `Dialog` is set to `z-10000` (overlay and popup) so it always rende
 
 ---
 
+## Testing
+
+### Test layers
+
+```
+Layer 1 — Unit (Vitest)            pure functions, no I/O
+Layer 2 — Integration (Vitest)     modules wired together, Next.js APIs mocked
+Layer 3 — UI (Vitest + RTL)        Panel.tsx in jsdom, browser APIs mocked
+Layer 4 — E2E (Playwright)         real Next.js dev server, full-stack SSE streaming
+```
+
+### Running tests
+
+```bash
+# All unit / integration / UI tests
+npm test
+
+# Watch mode
+npm run test:watch
+
+# Coverage report
+npm run test:coverage
+
+# E2E — first time: install the fixture app
+npm run fixture:install
+# Then run Playwright
+npm run test:e2e          # headless
+npm run test:e2e:ui       # Playwright UI mode
+```
+
+### Unit and integration tests (`src/*.test.ts`, `src/Panel.test.tsx`)
+
+| File | What it covers |
+|------|---------------|
+| `store.test.ts` | Ring buffer, subscriber notifications, `configure()` |
+| `redact.test.ts` | URL param / header / body key redaction, custom configs |
+| `panel-state.test.ts` | Open/close/toggle state machine and subscriber lifecycle |
+| `patch.test.ts` | `globalThis.fetch` patching, body capture, truncation, session tagging, redaction |
+| `middleware.test.ts` | Session cookie creation, `x-dev-sid` forwarding, `enabled: false` no-op |
+| `interceptor.test.ts` | Axios request/response/error interceptors, URL construction, body truncation |
+| `route.test.ts` | SSE stream, session filter, `Last-Event-ID` replay, guard, `enabled: false` |
+| `Panel.test.tsx` | Toggle, open/close, SSE entry rendering, filter, detail pane, cURL copy, auto-scroll, SSE reconnect, theme, truncation warning |
+
+`Panel.test.tsx` sets `@vitest-environment jsdom` per-file. All browser APIs that don't exist in jsdom (`EventSource`, `localStorage`, `navigator.clipboard`, `scrollIntoView`, `ResizeObserver`, `matchMedia`) are stubbed in `beforeAll`.
+
+### E2E fixture app (`fixtures/nextjs-app/`)
+
+A self-contained Next.js 16 app that wires every integration point of the library. It is bundled inside the library repo so E2E tests never depend on an external project.
+
+```
+fixtures/nextjs-app/
+├── app/
+│   ├── layout.tsx              root layout with <DevNetworkPanel />
+│   ├── page.tsx                home page with nav links
+│   ├── posts/page.tsx          SSR page — native fetch to jsonplaceholder
+│   ├── users/page.tsx          SSR page — axios with fetch adapter
+│   └── api/
+│       ├── dev-network/route.ts          SSE endpoint
+│       └── dev-network/snapshot/route.ts snapshot endpoint
+├── proxy.ts                    session middleware (Next.js 16 syntax)
+├── instrumentation.ts          fetch patch registration
+├── next.config.ts
+└── package.json                "next-fetch-panel": "file:../.." — always uses local dist/
+```
+
+The fixture's `package.json` points to the library via `"next-fetch-panel": "file:../.."`, which creates a symlink to `dist/`. Run `npm run build` (or `npm run dev` for watch mode) before E2E tests to keep `dist/` current. Playwright's `webServer` config starts `next dev` from the fixture directory automatically.
+
+### E2E tests (`playwright/e2e.spec.ts`)
+
+| # | Test |
+|---|------|
+| 1 | Fetch captured end-to-end (SSR → panel entry) |
+| 2 | Axios request (fetch adapter) captured alongside native fetch |
+| 3 | Session isolation — two browser contexts see only their own requests |
+| 4 | Snapshot endpoint returns session entries as JSON |
+| 5 | Middleware sets `__dev_sid` cookie on first request |
+| 6 | New entries stream live as pages are navigated via SPA links |
+| 7 | Filter bar narrows entry list and clears on × click |
+| 8 | SSE reconnect with `Last-Event-ID` replays only unseen entries (no duplicates) |
+| 9 | Panel `useEffect` sets `__dev_sid` cookie when middleware does not (cookie fallback) |
+| 10 | Drag-resize changes the panel height and persists to `localStorage` after reload |
+
+---
+
 ## Package Architecture
 
 ```
-packages/next-fetch-panel/
+next-fetch-panel/
 ├── src/
-│   ├── index.ts        Public entry — DevNetworkPanel + LogEntry type ("use client")
-│   ├── patch.ts        Server entry — globalThis.fetch patch + registerDevPanel()
-│   ├── middleware.ts   Server entry — session cookie + withDevPanel()
-│   ├── route.ts        Server entry — SSE handler + createDevPanelRoute()
-│   ├── interceptor.ts  Server entry — axios interceptors + createDevPanelAxiosInterceptors()
-│   ├── store.ts        Singleton pub/sub store (internal, shared via globalThis)
-│   ├── redact.ts       Secret redaction (internal)
-│   ├── utils.ts        cn() utility (internal)
-│   ├── Panel.tsx       "use client" floating panel component
-│   └── ui/             Self-contained UI components (shadcn-derived + base-ui wrappers)
-├── dist/               compiled output
+│   ├── index.ts          public entry — DevNetworkPanel + LogEntry type ("use client")
+│   ├── patch.ts          server entry — globalThis.fetch patch + registerDevPanel()
+│   ├── middleware.ts     server entry — session cookie + withDevPanel()
+│   ├── route.ts          server entry — SSE handler + createDevPanelRoute()
+│   ├── interceptor.ts    server entry — axios interceptors + createDevPanelAxiosInterceptors()
+│   ├── store.ts          singleton pub/sub store (internal, shared via globalThis)
+│   ├── redact.ts         secret redaction (internal)
+│   ├── utils.ts          cn() utility (internal)
+│   ├── Panel.tsx         "use client" floating panel component
+│   ├── panel-state.ts    open/closed state machine (internal)
+│   ├── ui/               self-contained UI components (shadcn-derived + base-ui wrappers)
+│   ├── store.test.ts     unit tests
+│   ├── redact.test.ts
+│   ├── panel-state.test.ts
+│   ├── patch.test.ts     integration tests
+│   ├── middleware.test.ts
+│   ├── route.test.ts
+│   ├── interceptor.test.ts
+│   └── Panel.test.tsx    UI tests (jsdom + RTL)
+├── fixtures/
+│   └── nextjs-app/       self-contained Next.js app for E2E tests
+├── playwright/
+│   └── e2e.spec.ts       E2E tests (10 scenarios)
+├── dist/                 compiled output
 │   ├── index.mjs / index.js / index.d.ts
 │   ├── patch.mjs / patch.js / patch.d.ts
 │   ├── middleware.mjs / middleware.js / middleware.d.ts
 │   ├── route.mjs / route.js / route.d.ts
 │   └── interceptor.mjs / interceptor.js / interceptor.d.ts
+├── playwright.config.ts
 ├── package.json
 ├── tsup.config.ts
 └── tsconfig.json
