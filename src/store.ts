@@ -33,7 +33,7 @@ declare global {
   var __devLogStore: DevLogStore | undefined;
 }
 
-function createStore(): DevLogStore {
+export function createStore(): DevLogStore {
   const subscribers = new Set<Subscriber>();
   const buffer: LogEntry[] = [];
   let limit = BUFFER_SIZE;
