@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate panel styles
+        run: npm run build:css
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -38,6 +41,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate panel styles
+        run: npm run build:css
 
       - name: Tests
         run: npm test

@@ -268,9 +268,14 @@ test("Panel useEffect sets __dev_sid cookie when middleware does not provide one
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
 
-  // Strip Set-Cookie from every response, simulating a route excluded from the
-  // middleware matcher where the server never issues the __dev_sid cookie.
+  // Strip Set-Cookie from page navigation responses only. API routes are
+  // excluded because route.fetch() cannot handle SSE streaming responses —
+  // the promise never resolves, blocking the EventSource connection entirely.
   await page.route("**/*", async (route) => {
+    if (new URL(route.request().url()).pathname.startsWith("/api/")) {
+      await route.continue();
+      return;
+    }
     const response = await route.fetch();
     const modifiedHeaders = { ...response.headers() };
     delete modifiedHeaders["set-cookie"];
@@ -280,9 +285,11 @@ test("Panel useEffect sets __dev_sid cookie when middleware does not provide one
   // Navigate; DevNetworkPanel is in the root layout and mounts immediately.
   await page.goto("/");
 
-  // The SSE connection to /api/dev-network is opened in the same useEffect
-  // that sets the cookie — a successful request means the effect has run.
-  await page.waitForRequest("**/api/dev-network", { timeout: 10_000 });
+  // Wait directly for the outcome: the Panel's useEffect sets document.cookie.
+  await page.waitForFunction(
+    () => document.cookie.split("; ").some((c) => c.startsWith("__dev_sid=")),
+    { timeout: 10_000 }
+  );
 
   const allCookies = await ctx.cookies("http://localhost:3000");
   const devCookie = allCookies.find((c) => c.name === "__dev_sid");
@@ -311,6 +318,9 @@ test("drag-resize changes the panel height and persists after reload", async ({
   const handle = page.locator("[data-nfp] .cursor-ns-resize");
   await expect(handle).toBeVisible();
 
+  // Wait for the sheet's CSS transition to finish before reading positions.
+  await page.waitForTimeout(400);
+
   const box = await handle.boundingBox();
   expect(box).not.toBeNull();
 
@@ -326,10 +336,11 @@ test("drag-resize changes the panel height and persists after reload", async ({
   await page.mouse.up();
 
   // Wait for React to flush the state update; localStorage is written
-  // inside the setConfig updater, which runs during the render flush.
+  // inside the setConfig updater which runs during the render flush.
+  // CI is slower — use a generous timeout.
   await page.waitForFunction(
     () => JSON.parse(localStorage.getItem("ssr-panel-config") || "{}").height > 420,
-    { timeout: 3_000 }
+    { timeout: 8_000 }
   );
 
   const heightAfterDrag = await page.evaluate<number>(() =>
