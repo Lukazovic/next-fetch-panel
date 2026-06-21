@@ -87,7 +87,7 @@ describe("withDevPanel", () => {
     const middleware = withDevPanel();
     const request = new NextRequest("https://example.com/", {
       cookieJar: { __dev_sid: existingId },
-    });
+    } as any);
     await middleware(request);
 
     const call = mockNext.mock.calls[0][0] as { request: { headers: Headers } };
@@ -98,7 +98,7 @@ describe("withDevPanel", () => {
     const middleware = withDevPanel();
     const request = new NextRequest("https://example.com/", {
       cookieJar: { __dev_sid: "already-set" },
-    });
+    } as any);
     await middleware(request);
 
     expect(mockCookiesSet).not.toHaveBeenCalled();

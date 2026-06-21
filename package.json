@@ -52,7 +52,7 @@
     "build:css": "tailwindcss -i src/panel.css -o src/panel.styles.tmp.css --minify && node scripts/build-css.mjs",
     "build": "npm run build:css && tsup",
     "dev": "tsup --watch",
-    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

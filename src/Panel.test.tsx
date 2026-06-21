@@ -45,9 +45,9 @@ class MockEventSource {
 vi.mock("react-resizable-panels", async () => {
   const R = await import("react");
   return {
-    Group: ({ children }: { children: R.ReactNode }) =>
+    Group: ({ children }: { children: React.ReactNode }) =>
       R.createElement("div", { "data-rp": "group" }, children),
-    Panel: ({ children }: { children: R.ReactNode }) =>
+    Panel: ({ children }: { children: React.ReactNode }) =>
       R.createElement("div", { "data-rp": "panel" }, children),
     Separator: () => null,
     useGroupRef: () => R.useRef(null),
