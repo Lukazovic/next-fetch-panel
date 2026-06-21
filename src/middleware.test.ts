@@ -129,6 +129,19 @@ describe("withDevPanel", () => {
     expect(mockCookiesSet).not.toHaveBeenCalled();
   });
 
+  it("returns the handler response directly when enabled is false and handler returns a Response", async () => {
+    const { NextResponse } = await import("next/server");
+    const handler = vi.fn(async () => NextResponse.redirect("/login"));
+
+    const middleware = withDevPanel(handler as any, { enabled: false });
+    await middleware(new NextRequest("https://example.com/protected"));
+
+    // The redirect from the handler is returned as-is; NextResponse.next() is NOT called
+    expect(mockRedirect).toHaveBeenCalledWith("/login");
+    expect(mockNext).not.toHaveBeenCalled();
+    expect(mockCookiesSet).not.toHaveBeenCalled();
+  });
+
   it("exports a default matcher config that excludes static assets", () => {
     const { config } = withDevPanel();
     expect(config.matcher).toBeDefined();

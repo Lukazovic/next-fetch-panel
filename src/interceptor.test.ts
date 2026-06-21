@@ -141,6 +141,55 @@ describe("createDevPanelAxiosInterceptors — response logging", () => {
 
     expect(devLogStore.getBuffer()[0].sessionId).toBe("interceptor-session");
   });
+
+  it("truncates the request body and sets requestBodyTruncated when data exceeds bodyLimit", async () => {
+    const bodyLimit = 5;
+    const { request, response } = createDevPanelAxiosInterceptors({ bodyLimit });
+    const config = request(
+      makeConfig("https://api.example.com/data", "post", { data: "abcdefghij" })
+    );
+    await response(makeAxiosResponse(config));
+
+    const [entry] = devLogStore.getBuffer();
+    expect(entry.requestBody).toHaveLength(bodyLimit);
+    expect(entry.requestBodyTruncated).toBe(true);
+  });
+
+  it("truncates the response body and sets responseBodyTruncated when data exceeds bodyLimit", async () => {
+    const bodyLimit = 5;
+    const { request, response } = createDevPanelAxiosInterceptors({ bodyLimit });
+    const config = request(makeConfig("https://api.example.com/data"));
+    await response(makeAxiosResponse(config, 200, "abcdefghij"));
+
+    const [entry] = devLogStore.getBuffer();
+    expect(entry.responseBody).toHaveLength(bodyLimit);
+    expect(entry.responseBodyTruncated).toBe(true);
+  });
+
+  it("stores null for a request body that cannot be serialized to JSON", async () => {
+    const { request, response } = createDevPanelAxiosInterceptors();
+    const circular: Record<string, unknown> = {};
+    circular["self"] = circular;
+    const config = request(
+      makeConfig("https://api.example.com/data", "post", { data: circular })
+    );
+    await response(makeAxiosResponse(config));
+
+    expect(devLogStore.getBuffer()[0].requestBody).toBeNull();
+  });
+
+  it("flattens object response headers to string values", async () => {
+    const { request, response } = createDevPanelAxiosInterceptors();
+    const config = request(makeConfig("https://api.example.com/data"));
+    await response({
+      ...makeAxiosResponse(config),
+      headers: { "content-type": "application/json", "x-trace": "abc123" },
+    });
+
+    const { responseHeaders } = devLogStore.getBuffer()[0];
+    expect(responseHeaders["content-type"]).toBe("application/json");
+    expect(responseHeaders["x-trace"]).toBe("abc123");
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -3,3 +3,8 @@ dist/
 *.tsbuildinfo
 src/panel.styles.ts
 src/panel.styles.tmp.css
+
+# Test output
+coverage/
+test-results/
+playwright-report/
