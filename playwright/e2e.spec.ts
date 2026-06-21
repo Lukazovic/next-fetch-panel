@@ -256,3 +256,93 @@ test("SSE reconnect with Last-Event-ID replays only unseen entries", async ({
   const countAfter = await page.locator("[data-nfp] tbody tr").count();
   expect(countAfter).toBe(countBefore);
 });
+
+// ---------------------------------------------------------------------------
+// 9 — Cookie fallback: Panel useEffect sets cookie when middleware doesn't
+// ---------------------------------------------------------------------------
+
+test("Panel useEffect sets __dev_sid cookie when middleware does not provide one", async ({
+  browser,
+}) => {
+  // Fresh context — no pre-existing cookies.
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+
+  // Strip Set-Cookie from every response, simulating a route excluded from the
+  // middleware matcher where the server never issues the __dev_sid cookie.
+  await page.route("**/*", async (route) => {
+    const response = await route.fetch();
+    const modifiedHeaders = { ...response.headers() };
+    delete modifiedHeaders["set-cookie"];
+    await route.fulfill({ response, headers: modifiedHeaders });
+  });
+
+  // Navigate; DevNetworkPanel is in the root layout and mounts immediately.
+  await page.goto("/");
+
+  // The SSE connection to /api/dev-network is opened in the same useEffect
+  // that sets the cookie — a successful request means the effect has run.
+  await page.waitForRequest("**/api/dev-network", { timeout: 10_000 });
+
+  const allCookies = await ctx.cookies("http://localhost:3000");
+  const devCookie = allCookies.find((c) => c.name === "__dev_sid");
+
+  expect(devCookie).toBeDefined();
+  // Must be a valid UUID v4
+  expect(devCookie!.value).toMatch(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  );
+
+  await ctx.close();
+});
+
+// ---------------------------------------------------------------------------
+// 10 — Drag-resize persists to localStorage
+// ---------------------------------------------------------------------------
+
+test("drag-resize changes the panel height and persists after reload", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await openPanel(page);
+
+  // The bottom-sheet resize handle sits at the top edge of the open panel.
+  // DEFAULT_CONFIG.height is 420 px.
+  const handle = page.locator("[data-nfp] .cursor-ns-resize");
+  await expect(handle).toBeVisible();
+
+  const box = await handle.boundingBox();
+  expect(box).not.toBeNull();
+
+  const cx = box!.x + box!.width / 2;
+  const cy = box!.y + box!.height / 2;
+
+  // Drag the handle upward by 100 px.
+  // SheetResizeHandle: size = window.innerHeight - ev.clientY
+  // Lower clientY → larger height.
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx, cy - 100, { steps: 10 });
+  await page.mouse.up();
+
+  // Wait for React to flush the state update; localStorage is written
+  // inside the setConfig updater, which runs during the render flush.
+  await page.waitForFunction(
+    () => JSON.parse(localStorage.getItem("ssr-panel-config") || "{}").height > 420,
+    { timeout: 3_000 }
+  );
+
+  const heightAfterDrag = await page.evaluate<number>(() =>
+    JSON.parse(localStorage.getItem("ssr-panel-config") || "{}").height
+  );
+  expect(heightAfterDrag).toBeGreaterThan(420);
+
+  // Reload and verify the height is restored from localStorage.
+  await page.reload();
+  await openPanel(page);
+
+  const heightAfterReload = await page.evaluate<number>(() =>
+    JSON.parse(localStorage.getItem("ssr-panel-config") || "{}").height
+  );
+  expect(heightAfterReload).toBe(heightAfterDrag);
+});

@@ -417,6 +417,65 @@ describe("DevNetworkPanel — Copy as cURL", () => {
       expect(curlStr).toContain("https://api.example.com/users");
     });
   });
+
+  it("shows a green check icon on the trigger for 1.5 s then reverts", async () => {
+    renderPanel();
+    openPanel();
+    await screen.findByText("No requests yet");
+
+    pushEntry(makeEntry());
+
+    await userEvent.click(screen.getByTitle("Actions"));
+    await userEvent.click(await screen.findByText(/Copy as cURL/i));
+
+    // Trigger turns green immediately after copying
+    await waitFor(() => {
+      expect(screen.getByTitle("Actions").classList.contains("text-green-500")).toBe(true);
+    });
+
+    // After 1.5 s the indicator resets automatically
+    await waitFor(
+      () => expect(screen.getByTitle("Actions").classList.contains("text-green-500")).toBe(false),
+      { timeout: 2_000 }
+    );
+  }, 5_000);
+});
+
+// ---------------------------------------------------------------------------
+// Auto-scroll
+// ---------------------------------------------------------------------------
+
+describe("DevNetworkPanel — auto-scroll", () => {
+  it("scrolls to the bottom when new entries arrive and the viewport is near the bottom", async () => {
+    renderPanel();
+    openPanel();
+    await screen.findByText("No requests yet");
+
+    // In jsdom all scroll dimensions default to 0, so distanceFromBottom = 0 < 100 px threshold
+    pushEntry(makeEntry());
+
+    await waitFor(() => {
+      expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+    });
+  });
+
+  it("does not auto-scroll when the viewport is scrolled away from the bottom", async () => {
+    renderPanel();
+    openPanel();
+    await screen.findByText("No requests yet");
+
+    // Simulate the user scrolling up: set scrollHeight=500, clientHeight=300, scrollTop stays 0
+    // → distanceFromBottom = 500 - 0 - 300 = 200 ≥ 100 px threshold → no auto-scroll
+    document.querySelectorAll('[data-slot="scroll-area-viewport"]').forEach((el) => {
+      Object.defineProperty(el, "scrollHeight", { value: 500, configurable: true });
+      Object.defineProperty(el, "clientHeight", { value: 300, configurable: true });
+    });
+
+    (window.HTMLElement.prototype.scrollIntoView as ReturnType<typeof vi.fn>).mockClear();
+    pushEntry(makeEntry());
+
+    expect(window.HTMLElement.prototype.scrollIntoView).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------

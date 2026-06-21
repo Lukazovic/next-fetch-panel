@@ -166,6 +166,31 @@ describe("createDevPanelRoute — SSE", () => {
 
     expect(clearSpy).toHaveBeenCalled();
   });
+
+  it("replays the full session buffer when Last-Event-ID is unrecognized", async () => {
+    const e1 = makeEntry({ sessionId: "test-session", id: "entry-1" });
+    const e2 = makeEntry({ sessionId: "test-session", id: "entry-2" });
+    devLogStore.push(e1);
+    devLogStore.push(e2);
+
+    const GET = createDevPanelRoute();
+    const request = new Request("https://app.com/api/dev-network", {
+      headers: { "last-event-id": "id-that-does-not-exist" },
+    });
+    const response = await GET(request);
+    const reader = response.body!.getReader();
+
+    await reader.read(); // ": connected"
+
+    // Both entries replayed because the ID was not found in the buffer
+    const { value: v1 } = await reader.read();
+    expect(decoder.decode(v1)).toContain("entry-1");
+
+    const { value: v2 } = await reader.read();
+    expect(decoder.decode(v2)).toContain("entry-2");
+
+    await reader.cancel();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -223,6 +248,21 @@ describe("createDevPanelSnapshot", () => {
     const response = await GET(new Request("https://app.com/api/dev-network/snapshot"));
     const body = await response.json();
 
+    expect(body.entries).toHaveLength(0);
+  });
+
+  it("does not return null-session entries even when the request has no session ID", async () => {
+    vi.mocked(headers).mockResolvedValue(new Headers());
+    vi.mocked(cookies).mockResolvedValue({ get: () => undefined } as any);
+
+    // Entry recorded outside any request context (e.g. background server task)
+    devLogStore.push(makeEntry({ sessionId: null }));
+
+    const GET = createDevPanelSnapshot();
+    const response = await GET(new Request("https://app.com/api/dev-network/snapshot"));
+    const body = await response.json();
+
+    // null must not match null — prevents leaking background requests into any session
     expect(body.entries).toHaveLength(0);
   });
 });
