@@ -92,10 +92,23 @@ jobs:
         run: npm run build
 
       - name: Install fixture dependencies
-        run: npm run fixture:install
+        run: npm install
+        working-directory: fixtures/nextjs-app
 
       - name: Install Playwright browsers
         run: npm run playwright:install
+
+      - name: Debug fixture package
+        run: |
+          echo "=== symlink or dir? ==="
+          ls -la node_modules/next-fetch-panel
+          echo "=== readlink ==="
+          readlink node_modules/next-fetch-panel || echo "(not a symlink)"
+          echo "=== realpath ==="
+          realpath node_modules/next-fetch-panel || echo "(realpath failed)"
+          echo "=== dist files ==="
+          ls node_modules/next-fetch-panel/dist/ | head -20 || echo "(no dist)"
+        working-directory: fixtures/nextjs-app
 
       - name: E2E tests
         run: npm run test:e2e

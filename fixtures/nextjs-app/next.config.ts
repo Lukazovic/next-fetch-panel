@@ -3,9 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   transpilePackages: ["next-fetch-panel"],
   webpack(config) {
-    // Prevent webpack from resolving the file: symlink to its real path.
-    // On CI (Linux), resolving to the real path breaks exports map resolution
-    // for packages installed as file: dependencies.
+    // webpack follows file: symlinks to their real path by default.
+    // On CI (Linux), this can break exports-map resolution.
+    // Disable symlink resolution so webpack uses the symlinked path directly.
     if (config.resolve) config.resolve.symlinks = false;
     return config;
   },
