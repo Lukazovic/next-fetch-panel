@@ -15,34 +15,34 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./patch": {
       "types": "./dist/patch.d.ts",
-      "import": "./dist/patch.mjs",
-      "require": "./dist/patch.js"
+      "import": "./dist/patch.js",
+      "require": "./dist/patch.cjs"
     },
     "./middleware": {
       "types": "./dist/middleware.d.ts",
-      "import": "./dist/middleware.mjs",
-      "require": "./dist/middleware.js"
+      "import": "./dist/middleware.js",
+      "require": "./dist/middleware.cjs"
     },
     "./route": {
       "types": "./dist/route.d.ts",
-      "import": "./dist/route.mjs",
-      "require": "./dist/route.js"
+      "import": "./dist/route.js",
+      "require": "./dist/route.cjs"
     },
     "./interceptor": {
       "types": "./dist/interceptor.d.ts",
-      "import": "./dist/interceptor.mjs",
-      "require": "./dist/interceptor.js"
+      "import": "./dist/interceptor.js",
+      "require": "./dist/interceptor.cjs"
     }
   },
   "files": [
@@ -61,7 +61,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "fixture:install": "npm install --prefix fixtures/nextjs-app",
+    "fixture:install": "cd fixtures/nextjs-app && npm install",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "playwright:install": "playwright install --with-deps chromium",

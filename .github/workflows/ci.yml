@@ -92,7 +92,8 @@ jobs:
         run: npm run build
 
       - name: Install fixture dependencies
-        run: npm run fixture:install
+        run: npm install
+        working-directory: fixtures/nextjs-app
 
       - name: Install Playwright browsers
         run: npm run playwright:install
