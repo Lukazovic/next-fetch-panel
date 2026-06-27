@@ -71,6 +71,7 @@ import {
   tryPrettyJson,
   toCurl,
 } from "./helpers/formatters";
+import { downloadBody, downloadEntry } from "./helpers/downloads";
 
 const PanelThemeContext = createContext<string>("nfp-theme-light");
 
@@ -118,31 +119,6 @@ function useEffectiveTheme(colorScheme: ColorScheme): "light" | "dark" {
 
   if (colorScheme !== "system") return colorScheme;
   return systemDark ? "dark" : "light";
-}
-
-function downloadBody(body: string, filename: string) {
-  const isJson = body.trimStart().startsWith("{") || body.trimStart().startsWith("[");
-  const blob = new Blob([body], { type: isJson ? "application/json" : "text/plain" });
-  const href = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = href;
-  a.download = `${filename}.${isJson ? "json" : "txt"}`;
-  a.click();
-  URL.revokeObjectURL(href);
-}
-
-function downloadEntry(entry: LogEntry) {
-  const blob = new Blob([JSON.stringify(entry, null, 2)], { type: "application/json" });
-  const href = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = href;
-  let name = "entry";
-  try {
-    name = new URL(entry.url).pathname.split("/").filter(Boolean).pop() || "entry";
-  } catch {}
-  a.download = `${name}-entry.json`;
-  a.click();
-  URL.revokeObjectURL(href);
 }
 
 function EntryActionsMenu({ entry }: { entry: LogEntry }) {
