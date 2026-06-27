@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { createStore, BUFFER_SIZE, type LogEntry } from "./store";
+import { createStore, BUFFER_SIZE, type LogEntry } from "./log-store";
 
 function makeEntry(overrides?: Partial<LogEntry>): LogEntry {
   return {
@@ -9,7 +9,7 @@ function makeEntry(overrides?: Partial<LogEntry>): LogEntry {
     status: 200,
     statusText: "OK",
     duration: 42,
-    ts: Date.now(),
+    timestamp: Date.now(),
     requestHeaders: {},
     responseHeaders: {},
     requestBody: null,
@@ -218,8 +218,8 @@ describe("createStore", () => {
 
   describe("singleton behavior", () => {
     it("devLogStore is the same instance across two imports", async () => {
-      const { devLogStore: a } = await import("./store");
-      const { devLogStore: b } = await import("./store");
+      const { devLogStore: a } = await import("./log-store");
+      const { devLogStore: b } = await import("./log-store");
       expect(a).toBe(b);
     });
 

@@ -1,3 +1,3 @@
-export { default as DevNetworkPanel, useDevNetworkPanel } from "./Panel";
-export type { LogEntry } from "./store";
-export type { ButtonPosition } from "./Panel";
+export { default as DevNetworkPanel, useDevNetworkPanel } from "./panel/Panel";
+export type { LogEntry } from "./domain";
+export type { ButtonPosition } from "./panel/Panel";

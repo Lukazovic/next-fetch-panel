@@ -1,5 +1,4 @@
-import type { RedactInput } from "./redact";
-import { BODY_LIMIT } from "./store";
+import { type RedactInput, BODY_LIMIT, SESSION_COOKIE, SESSION_HEADER } from "../domain";
 
 function headersToObject(headers: HeadersInit | undefined): Record<string, string> {
   if (!headers) return {};
@@ -42,8 +41,8 @@ async function getSessionId(): Promise<string | null> {
     }
     // Header set by middleware; cookie fallback covers routes excluded from the matcher.
     return (
-      (await nextHeaders()).get("x-dev-sid") ??
-      (await nextCookies!()).get("__dev_sid")?.value ??
+      (await nextHeaders()).get(SESSION_HEADER) ??
+      (await nextCookies!()).get(SESSION_COOKIE)?.value ??
       null
     );
   } catch {
@@ -91,8 +90,8 @@ export async function registerDevPanel(options?: {
   // Guard against double-patching (e.g. HMR re-running instrumentation.ts in dev mode).
   if ((globalThis.fetch as typeof globalThis.fetch & { __nfp?: boolean }).__nfp) return;
 
-  const { devLogStore } = await import("./store");
-  const { redactEntry, resolveRedactConfig } = await import("./redact");
+  const { devLogStore } = await import("../store");
+  const { redactEntry, resolveRedactConfig } = await import("../domain");
 
   const redactConfig = resolveRedactConfig(options?.redact);
   const bodyLimit = options?.bodyLimit ?? BODY_LIMIT;
@@ -115,8 +114,8 @@ export async function registerDevPanel(options?: {
       }
 
       const method = (init?.method ?? "GET").toUpperCase();
-      const ts = Date.now();
-      const id = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
+      const timestamp = Date.now();
+      const id = `${timestamp}-${Math.random().toString(36).slice(2, 8)}`;
       const requestHeaders = headersToObject(init?.headers);
       const { body: requestBody, truncated: requestBodyTruncated } = extractRequestBody(
         init,
@@ -148,7 +147,7 @@ export async function registerDevPanel(options?: {
                     id,
                     url,
                     method,
-                    ts,
+                    timestamp,
                     duration,
                     error: undefined,
                     status: response.status,
@@ -171,7 +170,7 @@ export async function registerDevPanel(options?: {
                     id,
                     url,
                     method,
-                    ts,
+                    timestamp,
                     duration,
                     error: undefined,
                     status: response.status,
@@ -199,7 +198,7 @@ export async function registerDevPanel(options?: {
               id,
               url,
               method,
-              ts,
+              timestamp,
               duration,
               error,
               status: null,

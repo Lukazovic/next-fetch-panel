@@ -60,7 +60,7 @@ Server (Node.js runtime)
 │        │
 │        ├── reads x-dev-sid via headers() from the current request ALS context
 │        ├── applies redactEntry() before storing
-│        └──▶ src/store.ts       ← singleton pub/sub + 100-entry ring buffer
+│        └──▶ src/store/log-store.ts  ← singleton pub/sub + 100-entry ring buffer
 │                                    entries tagged with sessionId
 │                                    (stored on globalThis to survive HMR)
 │
@@ -80,7 +80,7 @@ Server (Node.js runtime)
 
 Browser (Client)
 │
-└── src/Panel.tsx               ← "use client" floating panel
+└── src/panel/Panel.tsx          ← "use client" floating panel
          │
          ├── creates __dev_sid cookie client-side if absent (before EventSource opens)
          ├── EventSource → /api/dev-network  (browser sends __dev_sid cookie automatically)
@@ -95,7 +95,7 @@ Browser (Client)
 
 ## How It Works
 
-### 1. Fetch Interception (`src/patch.ts`)
+### 1. Fetch Interception (`src/capture/fetch-patch.ts`)
 
 `registerDevPanel()` is called once at server startup via `instrumentation.ts`. The function:
 
@@ -110,7 +110,7 @@ Browser (Client)
 
 Request body capture supports strings, `URLSearchParams`, and falls back to `"[binary]"` for other types.
 
-### 2. Singleton Store (`src/store.ts`)
+### 2. Singleton Store (`src/store/log-store.ts`)
 
 The store lives on `globalThis.__devLogStore` so it survives Next.js hot-reload (which re-imports modules but reuses the same Node.js process).
 
@@ -122,7 +122,7 @@ type LogEntry = {
   status: number | null;
   statusText: string | null;
   duration: number; // milliseconds
-  ts: number; // Date.now() at request start
+  timestamp: number; // Date.now() at request start
   error?: string;
   requestHeaders: Record<string, string>;
   responseHeaders: Record<string, string>;
@@ -136,7 +136,7 @@ type LogEntry = {
 
 The store keeps a ring buffer of the last 100 entries (configurable via `bufferSize` on `registerDevPanel`) and notifies all subscribers on `push()`. The `configure({ bufferSize })` method updates the limit live and trims the buffer immediately if it is over the new limit.
 
-### 3. SSE Endpoint (`src/route.ts`)
+### 3. SSE Endpoint (`src/server/route.ts`)
 
 `createDevPanelRoute()` returns a `GET` handler for `force-dynamic` routes. When a browser connects:
 
@@ -158,7 +158,7 @@ export const GET = createDevPanelRoute({
 });
 ```
 
-### 4. Session Isolation (`src/middleware.ts` + `x-dev-sid` header)
+### 4. Session Isolation (`src/server/middleware.ts` + `x-dev-sid` header)
 
 Every browser session gets a unique ID via the `__dev_sid` cookie (generated on first visit, valid for one year). Session isolation relies on two cooperating mechanisms:
 
@@ -191,7 +191,7 @@ export const proxy = withDevPanel(handler);
 export const config = { matcher: ["..."] };
 ```
 
-### 5. Axios Support (`src/interceptor.ts`)
+### 5. Axios Support (`src/capture/axios-interceptor.ts`)
 
 By default, axios in Node.js uses the `http`/`https` modules and bypasses `globalThis.fetch` entirely. Even when configured with `adapter: 'fetch'`, axios caches the original fetch reference at import time — before `instrumentation.ts` has had a chance to patch it — so axios calls still won't appear in the panel.
 
@@ -212,7 +212,7 @@ if (typeof window === "undefined") {
 
 ### 6. Capture Limits
 
-Two constants in `src/store.ts` define the defaults:
+Two constants in `src/domain/log-entry.ts` define the defaults:
 
 | Constant      | Default          | Description                                             |
 | ------------- | ---------------- | ------------------------------------------------------- |
@@ -237,7 +237,7 @@ createDevPanelAxiosInterceptors({ bodyLimit: 200_000 });
 
 `bodyLimit` truncates captured bodies before they are stored — it does not affect the actual HTTP request or response. `bufferSize` on `registerDevPanel` calls `devLogStore.configure({ bufferSize })` immediately, which also trims the buffer if it already contains more entries than the new limit.
 
-### 7. Client Panel (`src/Panel.tsx`)
+### 7. Client Panel (`src/panel/Panel.tsx`)
 
 A `"use client"` component rendered unconditionally inside `RootLayout`. On mount it:
 
@@ -252,9 +252,9 @@ A `"use client"` component rendered unconditionally inside `RootLayout`. On moun
 
 ## Redacting Secrets
 
-Redaction happens in `src/patch.ts` and `src/interceptor.ts` immediately after a response is received — the raw value is never written to the store or sent to the browser.
+Redaction happens in `src/capture/fetch-patch.ts` and `src/capture/axios-interceptor.ts` immediately after a response is received — the raw value is never written to the store or sent to the browser.
 
-### Default patterns (`src/redact.ts`)
+### Default patterns (`src/domain/redaction/redact.ts`)
 
 ```ts
 export const defaultRedactConfig: RedactConfig = {
@@ -360,7 +360,7 @@ When `enabled` is `false`:
 
 ## Programmatic Control
 
-The panel's open/closed state lives in a module-level store (`src/panel-state.ts`), shared across the entire app. Use the `useDevNetworkPanel` hook to read and control it from any client component.
+The panel's open/closed state lives in a module-level store (`src/store/panel-state.ts`), shared across the entire app. Use the `useDevNetworkPanel` hook to read and control it from any client component.
 
 ```tsx
 "use client";
@@ -638,7 +638,7 @@ npm run format:check      # CI check
 npm run format            # write in place
 ```
 
-ESLint uses a flat config (`eslint.config.js`, ESM). It covers `src/`, `playwright/`, and `playwright.config.ts`. Generated files (`src/panel.styles.ts`, `fixtures/`) are ignored.
+ESLint uses a flat config (`eslint.config.js`, ESM). It covers `src/`, `playwright/`, and `playwright.config.ts`. Generated files (`src/panel/panel.styles.ts`, `fixtures/`) are ignored.
 
 Prettier enforces consistent formatting. The config is in `.prettierrc`. A pre-commit hook (husky + lint-staged) runs both tools automatically on staged files so only changed files are checked on each commit.
 
@@ -646,16 +646,16 @@ CI runs `lint`, `typecheck`, `test`, and `e2e` as four parallel jobs. Any failur
 
 ### Unit and integration tests (`src/*.test.ts`, `src/Panel.test.tsx`)
 
-| File                  | What it covers                                                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `store.test.ts`       | Ring buffer, subscriber notifications, `configure()`                                                                           |
-| `redact.test.ts`      | URL param / header / body key redaction, custom configs                                                                        |
-| `panel-state.test.ts` | Open/close/toggle state machine and subscriber lifecycle                                                                       |
-| `patch.test.ts`       | `globalThis.fetch` patching, body capture, truncation, session tagging, redaction                                              |
-| `middleware.test.ts`  | Session cookie creation, `x-dev-sid` forwarding, `enabled: false` no-op                                                        |
-| `interceptor.test.ts` | Axios request/response/error interceptors, URL construction, body truncation                                                   |
-| `route.test.ts`       | SSE stream, session filter, `Last-Event-ID` replay, guard, `enabled: false`                                                    |
-| `Panel.test.tsx`      | Toggle, open/close, SSE entry rendering, filter, detail pane, cURL copy, auto-scroll, SSE reconnect, theme, truncation warning |
+| File                                | What it covers                                                                                                                 |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `store/log-store.test.ts`           | Ring buffer, subscriber notifications, `configure()`                                                                           |
+| `domain/redaction/redact.test.ts`   | URL param / header / body key redaction, custom configs                                                                        |
+| `store/panel-state.test.ts`         | Open/close/toggle state machine and subscriber lifecycle                                                                       |
+| `capture/fetch-patch.test.ts`       | `globalThis.fetch` patching, body capture, truncation, session tagging, redaction                                              |
+| `server/middleware.test.ts`         | Session cookie creation, `x-dev-sid` forwarding, `enabled: false` no-op                                                        |
+| `capture/axios-interceptor.test.ts` | Axios request/response/error interceptors, URL construction, body truncation                                                   |
+| `server/route.test.ts`              | SSE stream, session filter, `Last-Event-ID` replay, guard, `enabled: false`                                                    |
+| `panel/Panel.test.tsx`              | Toggle, open/close, SSE entry rendering, filter, detail pane, cURL copy, auto-scroll, SSE reconnect, theme, truncation warning |
 
 `Panel.test.tsx` sets `@vitest-environment jsdom` per-file. All browser APIs that don't exist in jsdom (`EventSource`, `localStorage`, `navigator.clipboard`, `scrollIntoView`, `ResizeObserver`, `matchMedia`) are stubbed in `beforeAll`.
 
@@ -703,49 +703,52 @@ The fixture's `package.json` points to the library via `"next-fetch-panel": "fil
 ```
 next-fetch-panel/
 ├── src/
-│   ├── index.ts          public entry — DevNetworkPanel + LogEntry type ("use client")
-│   ├── patch.ts          server entry — globalThis.fetch patch + registerDevPanel()
-│   ├── middleware.ts     server entry — session cookie + withDevPanel()
-│   ├── route.ts          server entry — SSE handler + createDevPanelRoute()
-│   ├── interceptor.ts    server entry — axios interceptors + createDevPanelAxiosInterceptors()
-│   ├── store.ts          singleton pub/sub store (internal, shared via globalThis)
-│   ├── redact.ts         secret redaction (internal)
-│   ├── utils.ts          cn() utility (internal)
-│   ├── Panel.tsx         "use client" floating panel component
-│   ├── panel-state.ts    open/closed state machine (internal)
-│   ├── ui/               self-contained UI components (shadcn-derived + base-ui wrappers)
-│   ├── store.test.ts     unit tests
-│   ├── redact.test.ts
-│   ├── panel-state.test.ts
-│   ├── patch.test.ts     integration tests
-│   ├── middleware.test.ts
-│   ├── route.test.ts
-│   ├── interceptor.test.ts
-│   └── Panel.test.tsx    UI tests (jsdom + RTL)
+│   ├── index.ts                    public entry — DevNetworkPanel + LogEntry type ("use client")
+│   ├── utils.ts                    cn() utility (internal)
+│   ├── domain/
+│   │   ├── log-entry.ts            LogEntry type + BUFFER_SIZE / BODY_LIMIT constants
+│   │   ├── session.ts              SESSION_COOKIE / SESSION_HEADER constants + SessionId type
+│   │   └── redaction/
+│   │       ├── config.ts           RedactConfig, RedactInput, defaultRedactConfig
+│   │       └── redact.ts           resolveRedactConfig(), redactEntry() (internal)
+│   ├── store/
+│   │   ├── log-store.ts            singleton pub/sub store (shared via globalThis)
+│   │   └── panel-state.ts          open/closed state machine (internal)
+│   ├── capture/
+│   │   ├── fetch-patch.ts          server entry — globalThis.fetch patch + registerDevPanel()
+│   │   └── axios-interceptor.ts    server entry — axios interceptors + createDevPanelAxiosInterceptors()
+│   ├── server/
+│   │   ├── middleware.ts           server entry — session cookie + withDevPanel()
+│   │   └── route.ts                server entry — SSE handler + createDevPanelRoute()
+│   └── panel/
+│       ├── Panel.tsx               "use client" floating panel component
+│       ├── panel.css               Tailwind source
+│       ├── panel.styles.ts         compiled CSS string (generated by build:css, gitignored)
+│       └── components/             self-contained UI components (shadcn-derived + base-ui wrappers)
 ├── fixtures/
-│   └── nextjs-app/       self-contained Next.js app for E2E tests
+│   └── nextjs-app/                 self-contained Next.js app for E2E tests
 ├── playwright/
-│   └── e2e.spec.ts       E2E tests (10 scenarios)
-├── dist/                 compiled output
-│   ├── index.mjs / index.js / index.d.ts
-│   ├── patch.mjs / patch.js / patch.d.ts
-│   ├── middleware.mjs / middleware.js / middleware.d.ts
-│   ├── route.mjs / route.js / route.d.ts
-│   └── interceptor.mjs / interceptor.js / interceptor.d.ts
+│   └── e2e.spec.ts                 E2E tests (10 scenarios)
+├── dist/                           compiled output
+│   ├── index.js / index.cjs / index.d.ts
+│   ├── patch.js / patch.cjs / patch.d.ts
+│   ├── middleware.js / middleware.cjs / middleware.d.ts
+│   ├── route.js / route.cjs / route.d.ts
+│   └── interceptor.js / interceptor.cjs / interceptor.d.ts
 ├── playwright.config.ts
-├── tsconfig.playwright.json  tsconfig extended with node types for playwright files
+├── tsconfig.playwright.json        tsconfig extended with node types for playwright files
 ├── package.json
 ├── tsup.config.ts
 ├── tsconfig.json
-├── eslint.config.js          ESLint flat config (ESM)
+├── eslint.config.js                ESLint flat config (ESM)
 ├── .prettierrc
 ├── .editorconfig
 ├── .husky/
-│   └── pre-commit            runs lint-staged on staged files
+│   └── pre-commit                  runs lint-staged on staged files
 ├── .github/
-│   └── workflows/ci.yml      lint · typecheck · test · e2e (parallel)
-├── AGENTS.md                 TDD guidelines for AI coding agents
-└── CLAUDE.md                 points to AGENTS.md
+│   └── workflows/ci.yml            lint · typecheck · test · e2e (parallel)
+├── AGENTS.md                       TDD guidelines for AI coding agents
+└── CLAUDE.md                       points to AGENTS.md
 ```
 
 ### Public exports
@@ -799,10 +802,10 @@ export default defineConfig([
   // Pipeline 2: Server bundles
   {
     entry: {
-      patch: "src/patch.ts",
-      middleware: "src/middleware.ts",
-      route: "src/route.ts",
-      interceptor: "src/interceptor.ts",
+      patch: "src/capture/fetch-patch.ts",
+      middleware: "src/server/middleware.ts",
+      route: "src/server/route.ts",
+      interceptor: "src/capture/axios-interceptor.ts",
     },
     format: ["cjs", "esm"],
     dts: true,
@@ -820,9 +823,9 @@ Next.js App Router Server Components use ESM. `instrumentation.ts` may be proces
 
 All peer dependencies (`react`, `next`, `@base-ui/react`, `lucide-react`, etc.) are marked `external`. They are not bundled into `dist/`. This keeps the package size small and avoids shipping duplicate React instances. The only code that IS bundled is the library's own logic: store, redact, utils, and the UI component definitions.
 
-### `ES2020.Intl` in `tsconfig.json`
+### `ES2021.Intl` in `tsconfig.json`
 
-The panel uses `fractionalSecondDigits` in `toLocaleTimeString`. This option is typed under `ES2020.Intl`, which is not included in the default `ES2020` lib. Adding `"ES2020.Intl"` to the `lib` array in `tsconfig.json` is required for the DTS build to pass.
+The panel uses `fractionalSecondDigits` in `toLocaleTimeString`. This option is typed under `ES2021.Intl`, which is not included in the default `ES2020` lib. Adding `"ES2021.Intl"` to the `lib` array in `tsconfig.json` is required for the DTS build to pass.
 
 ---
 
@@ -851,14 +854,14 @@ The root entry exports only `DevNetworkPanel` and the `LogEntry` type. All serve
 
 ## Bundled UI Components
 
-The original `server-network-panel/Panel.tsx` imported UI components via `@/components/ui/*` and a utility via `@/lib/utils`. These aliases cannot be used in a library. The components are copied into `src/ui/` with two import paths updated:
+The original `server-network-panel/Panel.tsx` imported UI components via `@/components/ui/*` and a utility via `@/lib/utils`. These aliases cannot be used in a library. The components are copied into `src/panel/components/` with two import paths updated:
 
 | Original                                          | Library                             |
 | ------------------------------------------------- | ----------------------------------- |
-| `import { cn } from "@/lib/utils"`                | `import { cn } from "../utils"`     |
+| `import { cn } from "@/lib/utils"`                | `import { cn } from "../../utils"`  |
 | `import { Button } from "@/components/ui/button"` | `import { Button } from "./button"` |
 
-Everything else — class names, prop types, primitives — is identical. Components use only peer dependencies and `../utils`, so they are self-contained.
+Everything else — class names, prop types, primitives — is identical. Components use only peer dependencies and `../../utils`, so they are self-contained.
 
 ### Why copy instead of a shared package?
 
@@ -897,7 +900,7 @@ In a Next.js project, `"use client"` at the top of a file marks it as a Client C
 
 ### How it breaks in compiled packages
 
-When tsup compiles `Panel.tsx`, esbuild treats `"use client"` as a bare string expression and removes it as dead code. The compiled `dist/index.mjs` has no directive. Next.js processes the file from `node_modules` as a Server Component, finds React hooks, and fails:
+When tsup compiles `Panel.tsx`, esbuild treats `"use client"` as a bare string expression and removes it as dead code. The compiled `dist/index.js` has no directive. Next.js processes the file from `node_modules` as a Server Component, finds React hooks, and fails:
 
 ```
 You're importing a module that depends on `useEffect` into a React Server Component module.
@@ -905,7 +908,7 @@ You're importing a module that depends on `useEffect` into a React Server Compon
 
 ### The fix: `banner` in tsup
 
-`banner: { js: '"use client";' }` prepends the string before any other content in the compiled output. The resulting `dist/index.mjs` starts with `"use client";`, which Next.js correctly processes as a Client Component boundary.
+`banner: { js: '"use client";' }` prepends the string before any other content in the compiled output. The resulting `dist/index.js` starts with `"use client";`, which Next.js correctly processes as a Client Component boundary.
 
 The banner is applied only to the index pipeline. Server-side entries must not carry it.
 
@@ -913,10 +916,10 @@ The banner is applied only to the index pipeline. Server-side entries must not c
 
 ## globalThis Store Across Package Boundaries
 
-Without the `globalThis` pattern, `dist/patch.mjs` and `dist/route.mjs` would each get their own `store` variable — two separate instances. The route's store would never receive entries pushed by the patch.
+Without the `globalThis` pattern, `dist/patch.js` and `dist/route.js` would each get their own `store` variable — two separate instances. The route's store would never receive entries pushed by the patch.
 
 ```ts
-// src/store.ts
+// src/store/log-store.ts
 const devLogStore = globalThis.__devLogStore ?? (globalThis.__devLogStore = createStore());
 ```
 
@@ -959,9 +962,9 @@ npm run dev        # tsup --watch, rebuilds on change
 
 Before `npm publish`:
 
-1. `npm run build` — verify `dist/` has `.mjs`, `.js`, `.d.ts`, and `.d.mts` files for all five entries.
-2. `head -1 dist/index.mjs` — must show `"use client";`.
-3. `head -1 dist/patch.mjs` — must NOT start with `"use client"`.
+1. `npm run build` — verify `dist/` has `.js`, `.cjs`, `.d.ts`, and `.d.cts` files for all five entries.
+2. `head -1 dist/index.js` — must show `"use client";`.
+3. `head -1 dist/patch.js` — must NOT start with `"use client"`.
 4. `package.json` `files` field — only `dist/` and `README.md`; not `src/`, `tsup.config.ts`, or `tsconfig.json`.
 5. Peer dependencies — `react`, `next`, `react-dom` are in `peerDependencies`, not `dependencies`.
 6. `exports` map — all five sub-paths (`.`, `./patch`, `./middleware`, `./route`, `./interceptor`) point to existing `dist/` files.

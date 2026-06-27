@@ -36,10 +36,10 @@ export default defineConfig([
   // Server-side bundles — no "use client"
   {
     entry: {
-      patch: "src/patch.ts",
-      middleware: "src/middleware.ts",
-      route: "src/route.ts",
-      interceptor: "src/interceptor.ts",
+      patch: "src/capture/fetch-patch.ts",
+      middleware: "src/server/middleware.ts",
+      route: "src/server/route.ts",
+      interceptor: "src/capture/axios-interceptor.ts",
     },
     format: ["cjs", "esm"],
     dts: true,

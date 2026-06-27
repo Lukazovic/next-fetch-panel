@@ -7,7 +7,8 @@ vi.mock("next/headers", () => ({
 }));
 
 import { createDevPanelRoute, createDevPanelSnapshot } from "./route";
-import { devLogStore, type LogEntry } from "./store";
+import { devLogStore } from "../store";
+import type { LogEntry } from "../domain";
 
 function makeEntry(overrides?: Partial<LogEntry>): LogEntry {
   return {
@@ -17,7 +18,7 @@ function makeEntry(overrides?: Partial<LogEntry>): LogEntry {
     status: 200,
     statusText: "OK",
     duration: 10,
-    ts: Date.now(),
+    timestamp: Date.now(),
     requestHeaders: {},
     responseHeaders: {},
     requestBody: null,

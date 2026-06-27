@@ -1,8 +1,8 @@
 node_modules/
 dist/
 *.tsbuildinfo
-src/panel.styles.ts
-src/panel.styles.tmp.css
+src/panel/panel.styles.ts
+src/panel/panel.styles.tmp.css
 
 # Test output
 coverage/

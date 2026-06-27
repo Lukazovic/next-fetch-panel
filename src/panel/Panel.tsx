@@ -10,7 +10,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { panelState } from "./panel-state";
+import { panelState } from "../store";
 import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
 import {
@@ -23,12 +23,12 @@ import {
   XIcon,
 } from "lucide-react";
 import { cn } from "./utils";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { ScrollArea } from "./ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./ui/sheet";
+import { Button } from "./components/button";
+import { Badge } from "./components/badge";
+import { ScrollArea } from "./components/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./components/tabs";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/resizable";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./components/sheet";
 import {
   Dialog,
   DialogClose,
@@ -36,16 +36,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./ui/dialog";
-import { Separator } from "./ui/separator";
-import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "./store";
+} from "./components/dialog";
+import { Separator } from "./components/separator";
+import { BUFFER_SIZE, BODY_LIMIT, type LogEntry, SESSION_COOKIE } from "../domain";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "./components/dropdown-menu";
 
 const PanelThemeContext = createContext<string>("nfp-theme-light");
 
@@ -595,7 +595,7 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
                         ? `${entry.status}${entry.statusText ? " " + entry.statusText : ""}`
                         : "—",
                     ],
-                    ["Started at", formatTs(entry.ts)],
+                    ["Started at", formatTs(entry.timestamp)],
                     ["Duration", `${entry.duration}ms`],
                     ...(entry.error ? [["Error", entry.error]] : []),
                   ] as [string, string][]
@@ -1082,8 +1082,8 @@ function Panel({
 
   useEffect(() => {
     // Fallback: create the session cookie if middleware didn't (e.g. /api/* excluded from matcher).
-    if (!document.cookie.split("; ").some((c) => c.startsWith("__dev_sid="))) {
-      document.cookie = `__dev_sid=${crypto.randomUUID()}; path=/; samesite=lax; max-age=31536000`;
+    if (!document.cookie.split("; ").some((c) => c.startsWith(`${SESSION_COOKIE}=`))) {
+      document.cookie = `${SESSION_COOKIE}=${crypto.randomUUID()}; path=/; samesite=lax; max-age=31536000`;
     }
 
     let current: EventSource | null = null;
@@ -1103,7 +1103,7 @@ function Panel({
       es.onmessage = (event) => {
         try {
           const entry: LogEntry = JSON.parse(event.data);
-          if (entry.ts <= clearedAtRef.current) return;
+          if (entry.timestamp <= clearedAtRef.current) return;
           if (seenIdsRef.current.has(entry.id)) return;
           seenIdsRef.current.add(entry.id);
           setEntries((prev) => {
