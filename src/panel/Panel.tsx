@@ -47,33 +47,23 @@ import {
   DropdownMenuTrigger,
 } from "./components/dropdown-menu";
 
+import type { PanelMode, SheetSide, ColorScheme, PanelConfig } from "./panel.config";
+import { DEFAULT_CONFIG, STORAGE_KEY } from "./panel.config";
+import {
+  type ButtonPosition,
+  BUTTON_POSITION_CLASSES,
+  FIXED_PANEL_POSITION_CLASSES,
+  METHOD_COLORS,
+  CLEARED_AT_KEY,
+  SCROLL_AREA_VIEWPORT_SELECTOR,
+  SCROLL_BOTTOM_THRESHOLD_PX,
+  FIXED_MIN_WIDTH_PX,
+  FIXED_MIN_HEIGHT_PX,
+  FIXED_MAX_WIDTH_FRACTION,
+  FIXED_MAX_HEIGHT_FRACTION,
+} from "./panel.constants";
+
 const PanelThemeContext = createContext<string>("nfp-theme-light");
-
-type PanelMode = "sheet" | "fixed";
-type SheetSide = "bottom" | "right" | "left" | "top";
-type ColorScheme = "system" | "light" | "dark";
-
-type PanelConfig = {
-  mode: PanelMode;
-  sheetSide: SheetSide;
-  sheetModal: boolean;
-  width: number;
-  height: number;
-  colorScheme: ColorScheme;
-  detailSize: number;
-};
-
-const DEFAULT_CONFIG: PanelConfig = {
-  mode: "sheet",
-  sheetSide: "bottom",
-  sheetModal: false,
-  width: 820,
-  height: 420,
-  colorScheme: "system",
-  detailSize: 40,
-};
-
-const STORAGE_KEY = "ssr-panel-config";
 
 function usePanelConfig() {
   const [config, setConfig] = useState<PanelConfig>(() => {
@@ -121,13 +111,6 @@ function useEffectiveTheme(colorScheme: ColorScheme): "light" | "dark" {
   return systemDark ? "dark" : "light";
 }
 
-const METHOD_COLORS: Record<string, string> = {
-  GET: "text-blue-400",
-  POST: "text-violet-400",
-  PUT: "text-orange-400",
-  PATCH: "text-orange-400",
-  DELETE: "text-red-400",
-};
 
 function methodClass(m: string) {
   return METHOD_COLORS[m] ?? "text-slate-400";
@@ -897,13 +880,6 @@ function PanelInner({
   );
 }
 
-const CLEARED_AT_KEY = "next-fetch-panel-cleared-at";
-const SCROLL_AREA_VIEWPORT_SELECTOR = '[data-slot="scroll-area-viewport"]';
-const SCROLL_BOTTOM_THRESHOLD_PX = 100;
-const FIXED_MIN_WIDTH_PX = 320;
-const FIXED_MIN_HEIGHT_PX = 200;
-const FIXED_MAX_WIDTH_FRACTION = 0.95;
-const FIXED_MAX_HEIGHT_FRACTION = 0.9;
 
 function SheetResizeHandle({
   side,
@@ -1023,31 +999,6 @@ function FixedResizeHandle({
   );
 }
 
-export type ButtonPosition =
-  | "bottom-right"
-  | "bottom-center"
-  | "bottom-left"
-  | "top-right"
-  | "top-center"
-  | "top-left";
-
-const BUTTON_POSITION_CLASSES: Record<ButtonPosition, string> = {
-  "bottom-right": "bottom-4 right-4",
-  "bottom-center": "bottom-4 left-1/2 -translate-x-1/2",
-  "bottom-left": "bottom-4 left-4",
-  "top-right": "top-4 right-4",
-  "top-center": "top-4 left-1/2 -translate-x-1/2",
-  "top-left": "top-4 left-4",
-};
-
-const FIXED_PANEL_POSITION_CLASSES: Record<ButtonPosition, string> = {
-  "bottom-right": "bottom-14 right-4",
-  "bottom-center": "bottom-14 left-1/2 -translate-x-1/2",
-  "bottom-left": "bottom-14 left-4",
-  "top-right": "top-14 right-4",
-  "top-center": "top-14 left-1/2 -translate-x-1/2",
-  "top-left": "top-14 left-4",
-};
 
 function Panel({
   showToggleButton,
