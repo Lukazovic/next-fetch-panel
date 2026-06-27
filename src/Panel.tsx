@@ -38,7 +38,7 @@ import {
   DialogDescription,
 } from "./ui/dialog";
 import { Separator } from "./ui/separator";
-import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "./store";
+import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "./domain/log-entry";
 import {
   DropdownMenu,
   DropdownMenuContent,

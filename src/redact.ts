@@ -1,4 +1,4 @@
-import type { LogEntry } from "./store";
+import type { LogEntry } from "./domain/log-entry";
 
 export type RedactConfig = {
   urlParams: string[];
