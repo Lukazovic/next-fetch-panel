@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { redactEntry, resolveRedactConfig, defaultRedactConfig, type RedactConfig } from "./redact";
-import type { LogEntry } from "./store";
+import type { LogEntry } from "../log-entry";
 
 function makeEntry(overrides?: Partial<LogEntry>): LogEntry {
   return {

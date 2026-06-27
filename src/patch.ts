@@ -1,4 +1,4 @@
-import type { RedactInput } from "./redact";
+import type { RedactInput } from "./domain/redaction/redact";
 import { BODY_LIMIT } from "./store";
 import { SESSION_COOKIE, SESSION_HEADER } from "./domain/session";
 
@@ -93,7 +93,7 @@ export async function registerDevPanel(options?: {
   if ((globalThis.fetch as typeof globalThis.fetch & { __nfp?: boolean }).__nfp) return;
 
   const { devLogStore } = await import("./store");
-  const { redactEntry, resolveRedactConfig } = await import("./redact");
+  const { redactEntry, resolveRedactConfig } = await import("./domain/redaction/redact");
 
   const redactConfig = resolveRedactConfig(options?.redact);
   const bodyLimit = options?.bodyLimit ?? BODY_LIMIT;
