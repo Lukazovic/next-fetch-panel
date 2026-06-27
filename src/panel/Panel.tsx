@@ -10,7 +10,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { panelState } from "./store/panel-state";
+import { panelState } from "../store/panel-state";
 import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
 import {
@@ -22,13 +22,13 @@ import {
   Settings2Icon,
   XIcon,
 } from "lucide-react";
-import { cn } from "./utils";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { ScrollArea } from "./ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./ui/sheet";
+import { cn } from "../utils";
+import { Button } from "./components/button";
+import { Badge } from "./components/badge";
+import { ScrollArea } from "./components/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./components/tabs";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/resizable";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./components/sheet";
 import {
   Dialog,
   DialogClose,
@@ -36,17 +36,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./ui/dialog";
-import { Separator } from "./ui/separator";
-import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "./domain/log-entry";
-import { SESSION_COOKIE } from "./domain/session";
+} from "./components/dialog";
+import { Separator } from "./components/separator";
+import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "../domain/log-entry";
+import { SESSION_COOKIE } from "../domain/session";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "./components/dropdown-menu";
 
 const PanelThemeContext = createContext<string>("nfp-theme-light");
 

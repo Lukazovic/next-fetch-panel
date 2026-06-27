@@ -50,7 +50,7 @@
     "README.md"
   ],
   "scripts": {
-    "build:css": "tailwindcss -i src/panel.css -o src/panel.styles.tmp.css --minify && node scripts/build-css.mjs",
+    "build:css": "tailwindcss -i src/panel/panel.css -o src/panel/panel.styles.tmp.css --minify && node scripts/build-css.mjs",
     "build": "npm run build:css && tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",

@@ -6,7 +6,13 @@ import prettier from "eslint-config-prettier";
 export default tseslint.config(
   // Global ignores
   {
-    ignores: ["dist/**", "coverage/**", "fixtures/**", "src/ui/**", "src/panel.styles.ts"],
+    ignores: [
+      "dist/**",
+      "coverage/**",
+      "fixtures/**",
+      "src/panel/components/**",
+      "src/panel/panel.styles.ts",
+    ],
   },
 
   // Base JS rules
