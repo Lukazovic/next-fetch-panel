@@ -47,13 +47,12 @@ import {
   DropdownMenuTrigger,
 } from "./components/dropdown-menu";
 
-import type { PanelMode, SheetSide, ColorScheme, PanelConfig } from "./panel.config";
+import type { SheetSide, ColorScheme, PanelConfig } from "./panel.config";
 import { DEFAULT_CONFIG, STORAGE_KEY } from "./panel.config";
 import {
   type ButtonPosition,
   BUTTON_POSITION_CLASSES,
   FIXED_PANEL_POSITION_CLASSES,
-  METHOD_COLORS,
   CLEARED_AT_KEY,
   SCROLL_AREA_VIEWPORT_SELECTOR,
   SCROLL_BOTTOM_THRESHOLD_PX,
@@ -62,6 +61,16 @@ import {
   FIXED_MAX_WIDTH_FRACTION,
   FIXED_MAX_HEIGHT_FRACTION,
 } from "./panel.constants";
+
+import {
+  methodClass,
+  statusClass,
+  durationBarColor,
+  formatTs,
+  formatBytes,
+  tryPrettyJson,
+  toCurl,
+} from "./helpers/formatters";
 
 const PanelThemeContext = createContext<string>("nfp-theme-light");
 
@@ -111,48 +120,6 @@ function useEffectiveTheme(colorScheme: ColorScheme): "light" | "dark" {
   return systemDark ? "dark" : "light";
 }
 
-
-function methodClass(m: string) {
-  return METHOD_COLORS[m] ?? "text-slate-400";
-}
-
-function statusClass(status: number | null, error?: string) {
-  if (error || status === null) return "text-red-400";
-  if (status < 300) return "text-green-400";
-  if (status < 400) return "text-amber-400";
-  return "text-red-400";
-}
-
-function durationBarColor(ms: number) {
-  if (ms < 200) return "bg-green-500";
-  if (ms < 1000) return "bg-amber-500";
-  return "bg-red-500";
-}
-
-function formatTs(ts: number) {
-  return new Intl.DateTimeFormat("en-US", {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    fractionalSecondDigits: 3,
-  }).format(new Date(ts));
-}
-
-function tryPrettyJson(text: string) {
-  try {
-    return JSON.stringify(JSON.parse(text), null, 2);
-  } catch {
-    return text;
-  }
-}
-
-function formatBytes(n: number) {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function downloadBody(body: string, filename: string) {
   const isJson = body.trimStart().startsWith("{") || body.trimStart().startsWith("[");
   const blob = new Blob([body], { type: isJson ? "application/json" : "text/plain" });
@@ -162,17 +129,6 @@ function downloadBody(body: string, filename: string) {
   a.download = `${filename}.${isJson ? "json" : "txt"}`;
   a.click();
   URL.revokeObjectURL(href);
-}
-
-function toCurl(entry: LogEntry): string {
-  const parts = [`curl -X ${entry.method} '${entry.url.replace(/'/g, "'\\''")}'`];
-  for (const [k, v] of Object.entries(entry.requestHeaders ?? {})) {
-    parts.push(`  -H '${k}: ${v.replace(/'/g, "'\\''")}'`);
-  }
-  if (entry.requestBody && entry.requestBody !== "[binary]") {
-    parts.push(`  --data-raw '${entry.requestBody.replace(/'/g, "'\\''")}'`);
-  }
-  return parts.join(" \\\n");
 }
 
 function downloadEntry(entry: LogEntry) {
@@ -880,7 +836,6 @@ function PanelInner({
   );
 }
 
-
 function SheetResizeHandle({
   side,
   onResize,
@@ -998,7 +953,6 @@ function FixedResizeHandle({
     </div>
   );
 }
-
 
 function Panel({
   showToggleButton,
