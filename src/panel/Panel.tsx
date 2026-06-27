@@ -10,7 +10,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { panelState } from "../store/panel-state";
+import { panelState } from "../store";
 import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
 import {
@@ -22,7 +22,7 @@ import {
   Settings2Icon,
   XIcon,
 } from "lucide-react";
-import { cn } from "../utils";
+import { cn } from "./utils";
 import { Button } from "./components/button";
 import { Badge } from "./components/badge";
 import { ScrollArea } from "./components/scroll-area";
@@ -38,8 +38,7 @@ import {
   DialogDescription,
 } from "./components/dialog";
 import { Separator } from "./components/separator";
-import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "../domain/log-entry";
-import { SESSION_COOKIE } from "../domain/session";
+import { BUFFER_SIZE, BODY_LIMIT, type LogEntry, SESSION_COOKIE } from "../domain";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, SESSION_HEADER } from "../domain/session";
+import { SESSION_COOKIE, SESSION_HEADER } from "../domain";
 
 type MiddlewareResult =
   | NextResponse

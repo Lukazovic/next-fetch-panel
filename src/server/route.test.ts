@@ -7,7 +7,8 @@ vi.mock("next/headers", () => ({
 }));
 
 import { createDevPanelRoute, createDevPanelSnapshot } from "./route";
-import { devLogStore, type LogEntry } from "../store/log-store";
+import { devLogStore } from "../store";
+import type { LogEntry } from "../domain";
 
 function makeEntry(overrides?: Partial<LogEntry>): LogEntry {
   return {

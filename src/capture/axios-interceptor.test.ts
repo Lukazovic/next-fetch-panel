@@ -7,7 +7,7 @@ vi.mock("next/headers", () => ({
 }));
 
 import { createDevPanelAxiosInterceptors } from "./axios-interceptor";
-import { devLogStore } from "../store/log-store";
+import { devLogStore } from "../store";
 
 function makeConfig(url: string, method = "get", extra: Record<string, unknown> = {}) {
   return { url, method, headers: {}, data: null, ...extra };

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Menu } from "@base-ui/react/menu";
-import { cn } from "../../utils";
+import { cn } from "../utils";
 
 function DropdownMenu(props: Menu.Root.Props) {
   return <Menu.Root {...props} />;

@@ -1,6 +1,4 @@
-import type { RedactInput } from "../domain/redaction/redact";
-import { BODY_LIMIT } from "../store/log-store";
-import { SESSION_COOKIE, SESSION_HEADER } from "../domain/session";
+import { type RedactInput, BODY_LIMIT, SESSION_COOKIE, SESSION_HEADER } from "../domain";
 
 function headersToObject(headers: HeadersInit | undefined): Record<string, string> {
   if (!headers) return {};
@@ -92,8 +90,8 @@ export async function registerDevPanel(options?: {
   // Guard against double-patching (e.g. HMR re-running instrumentation.ts in dev mode).
   if ((globalThis.fetch as typeof globalThis.fetch & { __nfp?: boolean }).__nfp) return;
 
-  const { devLogStore } = await import("../store/log-store");
-  const { redactEntry, resolveRedactConfig } = await import("../domain/redaction/redact");
+  const { devLogStore } = await import("../store");
+  const { redactEntry, resolveRedactConfig } = await import("../domain");
 
   const redactConfig = resolveRedactConfig(options?.redact);
   const bodyLimit = options?.bodyLimit ?? BODY_LIMIT;

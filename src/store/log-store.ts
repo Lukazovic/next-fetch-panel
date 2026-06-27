@@ -1,4 +1,4 @@
-import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "../domain/log-entry";
+import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "../domain";
 
 export type { LogEntry };
 export { BUFFER_SIZE, BODY_LIMIT };
