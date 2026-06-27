@@ -1,32 +1,5 @@
 import { type RedactInput, BODY_LIMIT, SESSION_COOKIE, SESSION_HEADER } from "../domain";
-
-function headersToObject(headers: HeadersInit | undefined): Record<string, string> {
-  if (!headers) return {};
-  if (headers instanceof Headers) {
-    const obj: Record<string, string> = {};
-    headers.forEach((v, k) => {
-      obj[k] = v;
-    });
-    return obj;
-  }
-  if (Array.isArray(headers)) return Object.fromEntries(headers);
-  return headers as Record<string, string>;
-}
-
-function extractRequestBody(
-  init: RequestInit | undefined,
-  bodyLimit: number
-): { body: string | null; truncated: boolean } {
-  const raw = init?.body;
-  if (raw == null) return { body: null, truncated: false };
-  if (typeof raw === "string")
-    return { body: raw.slice(0, bodyLimit), truncated: raw.length > bodyLimit };
-  if (raw instanceof URLSearchParams) {
-    const s = raw.toString();
-    return { body: s.slice(0, bodyLimit), truncated: s.length > bodyLimit };
-  }
-  return { body: "[binary]", truncated: false };
-}
+import { normalizeHeaders, extractRequestBody } from "./helpers/http";
 
 // Cached references — imported once, called per-request to read from the current ALS context.
 let nextHeaders: (typeof import("next/headers"))["headers"] | null = null;
@@ -116,7 +89,7 @@ export async function registerDevPanel(options?: {
       const method = (init?.method ?? "GET").toUpperCase();
       const timestamp = Date.now();
       const id = `${timestamp}-${Math.random().toString(36).slice(2, 8)}`;
-      const requestHeaders = headersToObject(init?.headers);
+      const requestHeaders = normalizeHeaders(init?.headers);
       const { body: requestBody, truncated: requestBodyTruncated } = extractRequestBody(
         init,
         bodyLimit

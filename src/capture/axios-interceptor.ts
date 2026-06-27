@@ -7,34 +7,11 @@ import {
   SESSION_COOKIE,
   SESSION_HEADER,
 } from "../domain";
+import { normalizeHeaders, stringify, wasTruncated } from "./helpers/http";
 
 // Cached after first import — module resolution is async but the reference is reused.
 let nextHeaders: (typeof import("next/headers"))["headers"] | null = null;
 let nextCookies: (typeof import("next/headers"))["cookies"] | null = null;
-
-function stringify(data: unknown, bodyLimit: number): string | null {
-  if (data == null) return null;
-  if (typeof data === "string") return data.slice(0, bodyLimit);
-  try {
-    return JSON.stringify(data).slice(0, bodyLimit);
-  } catch {
-    return null;
-  }
-}
-
-// A result of exactly bodyLimit chars means the original was at least that long (truncated).
-function wasTruncated(result: string | null, bodyLimit: number): boolean {
-  return result !== null && result.length >= bodyLimit;
-}
-
-function flattenHeaders(headers: unknown): Record<string, string> {
-  if (!headers || typeof headers !== "object") return {};
-  const result: Record<string, string> = {};
-  for (const [k, v] of Object.entries(headers as Record<string, unknown>)) {
-    if (typeof v === "string") result[k] = v;
-  }
-  return result;
-}
 
 async function push(
   entry: {
@@ -192,8 +169,8 @@ export function createDevPanelAxiosInterceptors(options?: {
           duration: Math.round(performance.now() - t.startTime),
           status: (r.status as number) ?? null,
           statusText: r.statusText as string | null,
-          requestHeaders: flattenHeaders((config as Record<string, unknown>).headers),
-          responseHeaders: flattenHeaders(r.headers),
+          requestHeaders: normalizeHeaders((config as Record<string, unknown>).headers),
+          responseHeaders: normalizeHeaders(r.headers),
           requestBody: reqBody,
           responseBody: resBody,
           requestBodyTruncated: wasTruncated(reqBody, bodyLimit),
@@ -225,8 +202,8 @@ export function createDevPanelAxiosInterceptors(options?: {
               status: (errResponse?.status as number) ?? null,
               statusText: errResponse?.statusText as string | null,
               error: e.message as string | undefined,
-              requestHeaders: flattenHeaders((config as Record<string, unknown>).headers),
-              responseHeaders: flattenHeaders(errResponse?.headers),
+              requestHeaders: normalizeHeaders((config as Record<string, unknown>).headers),
+              responseHeaders: normalizeHeaders(errResponse?.headers),
               requestBody: reqBody,
               responseBody: resBody,
               requestBodyTruncated: wasTruncated(reqBody, bodyLimit),
