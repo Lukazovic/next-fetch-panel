@@ -1,4 +1,4 @@
-import { devLogStore, BODY_LIMIT as DEFAULT_BODY_LIMIT } from "./store";
+import { devLogStore, BODY_LIMIT as DEFAULT_BODY_LIMIT } from "./store/log-store";
 import { redactEntry, resolveRedactConfig, type RedactInput } from "./domain/redaction/redact";
 import { SESSION_COOKIE, SESSION_HEADER } from "./domain/session";
 

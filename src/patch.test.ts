@@ -7,7 +7,7 @@ vi.mock("next/headers", () => ({
 }));
 
 import { registerDevPanel } from "./patch";
-import { devLogStore } from "./store";
+import { devLogStore } from "./store/log-store";
 
 // Capture the real fetch before any test patches it
 const realFetch = globalThis.fetch;

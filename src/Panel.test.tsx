@@ -6,8 +6,8 @@ import userEvent from "@testing-library/user-event";
 import React from "react";
 
 import DevNetworkPanel from "./Panel";
-import { panelState } from "./panel-state";
-import type { LogEntry } from "./store";
+import { panelState } from "./store/panel-state";
+import type { LogEntry } from "./domain/log-entry";
 
 // ---------------------------------------------------------------------------
 // EventSource mock

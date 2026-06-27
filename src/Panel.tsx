@@ -10,7 +10,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { panelState } from "./panel-state";
+import { panelState } from "./store/panel-state";
 import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
 import {
