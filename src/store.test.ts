@@ -9,7 +9,7 @@ function makeEntry(overrides?: Partial<LogEntry>): LogEntry {
     status: 200,
     statusText: "OK",
     duration: 42,
-    ts: Date.now(),
+    timestamp: Date.now(),
     requestHeaders: {},
     responseHeaders: {},
     requestBody: null,

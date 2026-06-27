@@ -5,7 +5,7 @@ export type LogEntry = {
   status: number | null;
   statusText: string | null;
   duration: number;
-  ts: number;
+  timestamp: number;
   error?: string;
   requestHeaders: Record<string, string>;
   responseHeaders: Record<string, string>;

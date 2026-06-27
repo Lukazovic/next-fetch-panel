@@ -595,7 +595,7 @@ function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void 
                         ? `${entry.status}${entry.statusText ? " " + entry.statusText : ""}`
                         : "—",
                     ],
-                    ["Started at", formatTs(entry.ts)],
+                    ["Started at", formatTs(entry.timestamp)],
                     ["Duration", `${entry.duration}ms`],
                     ...(entry.error ? [["Error", entry.error]] : []),
                   ] as [string, string][]
@@ -1103,7 +1103,7 @@ function Panel({
       es.onmessage = (event) => {
         try {
           const entry: LogEntry = JSON.parse(event.data);
-          if (entry.ts <= clearedAtRef.current) return;
+          if (entry.timestamp <= clearedAtRef.current) return;
           if (seenIdsRef.current.has(entry.id)) return;
           seenIdsRef.current.add(entry.id);
           setEntries((prev) => {

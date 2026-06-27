@@ -125,7 +125,7 @@ function makeEntry(overrides?: Partial<LogEntry>): LogEntry {
     status: 200,
     statusText: "OK",
     duration: 42,
-    ts: Date.now(), // must be > 0 so it isn't filtered by the clearedAt guard
+    timestamp: Date.now(), // must be > 0 so it isn't filtered by the clearedAt guard
     requestHeaders: {},
     responseHeaders: {},
     requestBody: null,

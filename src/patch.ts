@@ -115,8 +115,8 @@ export async function registerDevPanel(options?: {
       }
 
       const method = (init?.method ?? "GET").toUpperCase();
-      const ts = Date.now();
-      const id = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
+      const timestamp = Date.now();
+      const id = `${timestamp}-${Math.random().toString(36).slice(2, 8)}`;
       const requestHeaders = headersToObject(init?.headers);
       const { body: requestBody, truncated: requestBodyTruncated } = extractRequestBody(
         init,
@@ -148,7 +148,7 @@ export async function registerDevPanel(options?: {
                     id,
                     url,
                     method,
-                    ts,
+                    timestamp,
                     duration,
                     error: undefined,
                     status: response.status,
@@ -171,7 +171,7 @@ export async function registerDevPanel(options?: {
                     id,
                     url,
                     method,
-                    ts,
+                    timestamp,
                     duration,
                     error: undefined,
                     status: response.status,
@@ -199,7 +199,7 @@ export async function registerDevPanel(options?: {
               id,
               url,
               method,
-              ts,
+              timestamp,
               duration,
               error,
               status: null,

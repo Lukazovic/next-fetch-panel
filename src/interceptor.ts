@@ -33,7 +33,7 @@ async function push(
   entry: {
     url: string;
     method: string;
-    ts: number;
+    timestamp: number;
     duration: number;
     status: number | null;
     statusText?: string | null;
@@ -64,10 +64,10 @@ async function push(
     devLogStore.push(
       redactEntry(
         {
-          id: `${entry.ts}-${Math.random().toString(36).slice(2, 8)}`,
+          id: `${entry.timestamp}-${Math.random().toString(36).slice(2, 8)}`,
           url: entry.url,
           method: entry.method.toUpperCase(),
-          ts: entry.ts,
+          timestamp: entry.timestamp,
           duration: entry.duration,
           status: entry.status,
           statusText: entry.statusText ?? null,
@@ -181,7 +181,7 @@ export function createDevPanelAxiosInterceptors(options?: {
         {
           url: t.url,
           method: String((config as Record<string, unknown>).method ?? "GET"),
-          ts: t.ts,
+          timestamp: t.ts,
           duration: Math.round(performance.now() - t.startTime),
           status: (r.status as number) ?? null,
           statusText: r.statusText as string | null,
@@ -213,7 +213,7 @@ export function createDevPanelAxiosInterceptors(options?: {
             {
               url: t.url,
               method: String((config as Record<string, unknown>).method ?? "GET"),
-              ts: t.ts,
+              timestamp: t.ts,
               duration: Math.round(performance.now() - t.startTime),
               status: (errResponse?.status as number) ?? null,
               statusText: errResponse?.statusText as string | null,
