@@ -37,8 +37,8 @@ export default defineConfig([
   {
     entry: {
       patch: "src/capture/fetch-patch.ts",
-      middleware: "src/middleware.ts",
-      route: "src/route.ts",
+      middleware: "src/server/middleware.ts",
+      route: "src/server/route.ts",
       interceptor: "src/capture/axios-interceptor.ts",
     },
     format: ["cjs", "esm"],

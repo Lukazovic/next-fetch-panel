@@ -1,6 +1,6 @@
 import { cookies, headers } from "next/headers";
-import { devLogStore } from "./store/log-store";
-import { SESSION_COOKIE, SESSION_HEADER } from "./domain/session";
+import { devLogStore } from "../store/log-store";
+import { SESSION_COOKIE, SESSION_HEADER } from "../domain/session";
 
 export const dynamic = "force-dynamic";
 
