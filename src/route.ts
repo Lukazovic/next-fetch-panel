@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import { devLogStore } from "./store";
+import { SESSION_COOKIE, SESSION_HEADER } from "./domain/session";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
     // Header set by middleware; cookie fallback covers SSE routes excluded from the matcher.
     // Null guard prevents null === null matching across sessions when neither is available.
     const sessionId =
-      (await headers()).get("x-dev-sid") ?? (await cookies()).get("__dev_sid")?.value ?? null;
+      (await headers()).get(SESSION_HEADER) ?? (await cookies()).get(SESSION_COOKIE)?.value ?? null;
 
     // On reconnect the browser sends Last-Event-ID with the last received entry id.
     // Use it to replay only entries the client hasn't seen yet.
@@ -131,7 +132,7 @@ export function createDevPanelSnapshot(options?: { guard?: GuardFn; enabled?: bo
     if (blocked instanceof Response) return blocked;
 
     const sessionId =
-      (await headers()).get("x-dev-sid") ?? (await cookies()).get("__dev_sid")?.value ?? null;
+      (await headers()).get(SESSION_HEADER) ?? (await cookies()).get(SESSION_COOKIE)?.value ?? null;
 
     const entries = devLogStore
       .getBuffer()

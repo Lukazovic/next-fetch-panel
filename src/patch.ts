@@ -1,5 +1,6 @@
 import type { RedactInput } from "./redact";
 import { BODY_LIMIT } from "./store";
+import { SESSION_COOKIE, SESSION_HEADER } from "./domain/session";
 
 function headersToObject(headers: HeadersInit | undefined): Record<string, string> {
   if (!headers) return {};
@@ -42,8 +43,8 @@ async function getSessionId(): Promise<string | null> {
     }
     // Header set by middleware; cookie fallback covers routes excluded from the matcher.
     return (
-      (await nextHeaders()).get("x-dev-sid") ??
-      (await nextCookies!()).get("__dev_sid")?.value ??
+      (await nextHeaders()).get(SESSION_HEADER) ??
+      (await nextCookies!()).get(SESSION_COOKIE)?.value ??
       null
     );
   } catch {

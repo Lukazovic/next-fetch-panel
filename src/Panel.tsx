@@ -39,6 +39,7 @@ import {
 } from "./ui/dialog";
 import { Separator } from "./ui/separator";
 import { BUFFER_SIZE, BODY_LIMIT, type LogEntry } from "./domain/log-entry";
+import { SESSION_COOKIE } from "./domain/session";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1082,8 +1083,8 @@ function Panel({
 
   useEffect(() => {
     // Fallback: create the session cookie if middleware didn't (e.g. /api/* excluded from matcher).
-    if (!document.cookie.split("; ").some((c) => c.startsWith("__dev_sid="))) {
-      document.cookie = `__dev_sid=${crypto.randomUUID()}; path=/; samesite=lax; max-age=31536000`;
+    if (!document.cookie.split("; ").some((c) => c.startsWith(`${SESSION_COOKIE}=`))) {
+      document.cookie = `${SESSION_COOKIE}=${crypto.randomUUID()}; path=/; samesite=lax; max-age=31536000`;
     }
 
     let current: EventSource | null = null;

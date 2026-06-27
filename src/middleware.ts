@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { SESSION_COOKIE, SESSION_HEADER } from "./domain/session";
 
 type MiddlewareResult =
   | NextResponse
@@ -41,7 +42,7 @@ export function withDevPanel<TRequest = NextRequest>(
       if (userResponse instanceof Response) return userResponse as NextResponse;
       return NextResponse.next();
     }
-    const existing = request.cookies.get("__dev_sid")?.value;
+    const existing = request.cookies.get(SESSION_COOKIE)?.value;
     const sid = existing ?? crypto.randomUUID();
 
     // Run the caller's middleware logic first so it can redirect/short-circuit.
@@ -58,13 +59,13 @@ export function withDevPanel<TRequest = NextRequest>(
       // headers() from next/headers propagates it through the entire
       // request async context, including inside the fetch patch.
       const requestHeaders = new Headers(request.headers);
-      requestHeaders.set("x-dev-sid", sid);
+      requestHeaders.set(SESSION_HEADER, sid);
       response = NextResponse.next({ request: { headers: requestHeaders } });
     }
 
     if (!existing) {
       // Not httpOnly — Panel.tsx reads and creates this cookie client-side when middleware doesn't run for the route.
-      response.cookies.set("__dev_sid", sid, {
+      response.cookies.set(SESSION_COOKIE, sid, {
         sameSite: "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 365,

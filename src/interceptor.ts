@@ -1,5 +1,6 @@
 import { devLogStore, BODY_LIMIT as DEFAULT_BODY_LIMIT } from "./store";
 import { redactEntry, resolveRedactConfig, type RedactInput } from "./redact";
+import { SESSION_COOKIE, SESSION_HEADER } from "./domain/session";
 
 // Cached after first import — module resolution is async but the reference is reused.
 let nextHeaders: (typeof import("next/headers"))["headers"] | null = null;
@@ -55,8 +56,8 @@ async function push(
       nextCookies = mod.cookies;
     }
     sessionId =
-      (await nextHeaders()).get("x-dev-sid") ??
-      (await nextCookies!()).get("__dev_sid")?.value ??
+      (await nextHeaders()).get(SESSION_HEADER) ??
+      (await nextCookies!()).get(SESSION_COOKIE)?.value ??
       null;
   } catch {}
 
