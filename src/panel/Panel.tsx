@@ -1,14 +1,7 @@
 "use client";
 
 import panelStyles from "./panel.styles";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { panelState } from "../store";
 import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
@@ -72,8 +65,8 @@ import {
 import { downloadBody, downloadEntry } from "./helpers/downloads";
 import { usePanelConfig } from "./hooks/usePanelConfig";
 import { useEffectiveTheme } from "./hooks/useEffectiveTheme";
-
-const PanelThemeContext = createContext<string>("nfp-theme-light");
+import { PanelThemeContext } from "./PanelThemeContext";
+import { OptionButton } from "./components/OptionButton";
 
 function EntryActionsMenu({ entry }: { entry: LogEntry }) {
   const themeClass = useContext(PanelThemeContext);
@@ -134,30 +127,6 @@ function EntryActionsMenu({ entry }: { entry: LogEntry }) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-function OptionButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors border",
-        active
-          ? "bg-primary text-primary-foreground border-primary"
-          : "bg-transparent text-muted-foreground border-border hover:bg-muted hover:text-foreground"
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
