@@ -3,7 +3,6 @@
 import panelStyles from "./panel.styles";
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -48,7 +47,6 @@ import {
 } from "./components/dropdown-menu";
 
 import type { SheetSide, ColorScheme, PanelConfig } from "./panel.config";
-import { DEFAULT_CONFIG, STORAGE_KEY } from "./panel.config";
 import {
   type ButtonPosition,
   BUTTON_POSITION_CLASSES,
@@ -72,35 +70,9 @@ import {
   toCurl,
 } from "./helpers/formatters";
 import { downloadBody, downloadEntry } from "./helpers/downloads";
+import { usePanelConfig } from "./hooks/usePanelConfig";
 
 const PanelThemeContext = createContext<string>("nfp-theme-light");
-
-function usePanelConfig() {
-  const [config, setConfig] = useState<PanelConfig>(() => {
-    if (typeof window === "undefined") return DEFAULT_CONFIG;
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
-    } catch {
-      /* ignore */
-    }
-    return DEFAULT_CONFIG;
-  });
-
-  const update = useCallback((patch: Partial<PanelConfig>) => {
-    setConfig((prev) => {
-      const next = { ...prev, ...patch };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, []);
-
-  return { config, update };
-}
 
 function useEffectiveTheme(colorScheme: ColorScheme): "light" | "dark" {
   const [systemDark, setSystemDark] = useState(() =>
