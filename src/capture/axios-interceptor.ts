@@ -1,6 +1,6 @@
-import { devLogStore, BODY_LIMIT as DEFAULT_BODY_LIMIT } from "./store/log-store";
-import { redactEntry, resolveRedactConfig, type RedactInput } from "./domain/redaction/redact";
-import { SESSION_COOKIE, SESSION_HEADER } from "./domain/session";
+import { devLogStore, BODY_LIMIT as DEFAULT_BODY_LIMIT } from "../store/log-store";
+import { redactEntry, resolveRedactConfig, type RedactInput } from "../domain/redaction/redact";
+import { SESSION_COOKIE, SESSION_HEADER } from "../domain/session";
 
 // Cached after first import — module resolution is async but the reference is reused.
 let nextHeaders: (typeof import("next/headers"))["headers"] | null = null;
@@ -46,7 +46,7 @@ async function push(
     requestBodyTruncated?: boolean;
     responseBodyTruncated?: boolean;
   },
-  config: import("./domain/redaction/redact").RedactConfig
+  config: import("../domain/redaction/redact").RedactConfig
 ) {
   let sessionId: string | null = null;
   try {

@@ -6,8 +6,8 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(),
 }));
 
-import { createDevPanelAxiosInterceptors } from "./interceptor";
-import { devLogStore } from "./store/log-store";
+import { createDevPanelAxiosInterceptors } from "./axios-interceptor";
+import { devLogStore } from "../store/log-store";
 
 function makeConfig(url: string, method = "get", extra: Record<string, unknown> = {}) {
   return { url, method, headers: {}, data: null, ...extra };
