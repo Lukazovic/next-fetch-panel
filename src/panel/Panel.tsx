@@ -1,19 +1,11 @@
 "use client";
 
 import panelStyles from "./panel.styles";
-import { useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { panelState } from "../store";
 import { createPortal } from "react-dom";
 import { useGroupRef } from "react-resizable-panels";
-import {
-  CheckIcon,
-  CopyIcon,
-  DownloadIcon,
-  EllipsisIcon,
-  SearchIcon,
-  Settings2Icon,
-  XIcon,
-} from "lucide-react";
+import { SearchIcon, Settings2Icon, XIcon } from "lucide-react";
 import { cn } from "./utils";
 import { Button } from "./components/button";
 import { Badge } from "./components/badge";
@@ -31,13 +23,6 @@ import {
 } from "./components/dialog";
 import { Separator } from "./components/separator";
 import { BUFFER_SIZE, BODY_LIMIT, type LogEntry, SESSION_COOKIE } from "../domain";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./components/dropdown-menu";
 
 import type { SheetSide, ColorScheme, PanelConfig } from "./panel.config";
 import {
@@ -60,75 +45,13 @@ import {
   formatTs,
   formatBytes,
   tryPrettyJson,
-  toCurl,
 } from "./helpers/formatters";
-import { downloadBody, downloadEntry } from "./helpers/downloads";
+import { downloadBody } from "./helpers/downloads";
 import { usePanelConfig } from "./hooks/usePanelConfig";
 import { useEffectiveTheme } from "./hooks/useEffectiveTheme";
 import { PanelThemeContext } from "./PanelThemeContext";
 import { OptionButton } from "./components/OptionButton";
-
-function EntryActionsMenu({ entry }: { entry: LogEntry }) {
-  const themeClass = useContext(PanelThemeContext);
-  const [copied, setCopied] = useState(false);
-  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  useEffect(() => () => clearTimeout(copiedTimerRef.current), []);
-
-  let downloadName = "entry";
-  try {
-    downloadName = new URL(entry.url).pathname.split("/").filter(Boolean).pop() || "entry";
-  } catch {}
-
-  function handleCopyCurl() {
-    navigator.clipboard.writeText(toCurl(entry)).then(() => {
-      setCopied(true);
-      clearTimeout(copiedTimerRef.current);
-      copiedTimerRef.current = setTimeout(() => setCopied(false), 1500);
-    });
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        title="Actions"
-        className={cn(
-          "rounded p-0.5 transition-colors",
-          copied ? "text-green-500" : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        {copied ? <CheckIcon className="size-3.5" /> : <EllipsisIcon className="size-3.5" />}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent data-nfp="" className={themeClass}>
-        <DropdownMenuItem onClick={handleCopyCurl}>
-          <CopyIcon className="size-3 shrink-0" />
-          Copy as cURL
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {entry.responseBody && (
-          <DropdownMenuItem
-            onClick={() => downloadBody(entry.responseBody!, `${downloadName}-response`)}
-          >
-            <DownloadIcon className="size-3 shrink-0" />
-            Download response body
-          </DropdownMenuItem>
-        )}
-        {entry.requestBody && entry.requestBody !== "[binary]" && (
-          <DropdownMenuItem
-            onClick={() => downloadBody(entry.requestBody!, `${downloadName}-request`)}
-          >
-            <DownloadIcon className="size-3 shrink-0" />
-            Download request body
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem onClick={() => downloadEntry(entry)}>
-          <DownloadIcon className="size-3 shrink-0" />
-          Download full request data
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
+import { EntryActionsMenu } from "./components/EntryActionsMenu";
 
 function SettingsDialog({
   config,
