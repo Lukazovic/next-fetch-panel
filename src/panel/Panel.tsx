@@ -8,7 +8,7 @@ import { cn } from "./cn";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./components/ui/sheet";
-import { BUFFER_SIZE, type LogEntry, SESSION_COOKIE } from "../domain";
+import { BUFFER_SIZE, type LogEntry, SESSION_COOKIE, DEV_NETWORK_ROUTE } from "../domain";
 
 import {
   type ButtonPosition,
@@ -17,6 +17,8 @@ import {
   CLEARED_AT_KEY,
   SCROLL_AREA_VIEWPORT_SELECTOR,
   SCROLL_BOTTOM_THRESHOLD_PX,
+  PANEL_STYLES_ID,
+  buildThemeClass,
 } from "./panel.constants";
 
 import { usePanelConfig } from "./hooks/usePanelConfig";
@@ -46,10 +48,9 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
   const isDark = theme === "dark";
 
   useEffect(() => {
-    const id = "next-fetch-panel-styles";
-    if (!document.getElementById(id)) {
+    if (!document.getElementById(PANEL_STYLES_ID)) {
       const style = document.createElement("style");
-      style.id = id;
+      style.id = PANEL_STYLES_ID;
       style.textContent = panelStyles;
       document.head.appendChild(style);
     }
@@ -68,7 +69,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
 
     function connect() {
       if (destroyed) return;
-      const es = new EventSource("/api/dev-network");
+      const es = new EventSource(DEV_NETWORK_ROUTE);
       current = es;
 
       es.onopen = () => {
@@ -169,7 +170,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
   // Scoped theme class sets --nfp-* vars with hardcoded values so they are never
   // affected by the consumer's <html class="dark"> or any other ancestor.
   // The "dark" class is kept alongside for dark: utility selectors.
-  const themeClass = isDark ? "nfp-theme-dark dark" : "nfp-theme-light";
+  const themeClass = buildThemeClass(isDark);
 
   return (
     <PanelThemeContext.Provider value={themeClass}>

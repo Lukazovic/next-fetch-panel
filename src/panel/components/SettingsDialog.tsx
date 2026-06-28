@@ -13,6 +13,7 @@ import {
   DialogDescription,
 } from "./ui/dialog";
 import type { SheetSide, ColorScheme, PanelConfig } from "../panel.config";
+import { buildThemeClass } from "../panel.constants";
 import { OptionButton } from "./OptionButton";
 
 type SettingsDialogProps = {
@@ -25,7 +26,7 @@ type SettingsDialogProps = {
 
 export function SettingsDialog({ config, update, open, onOpenChange, theme }: SettingsDialogProps) {
   const isDark = theme === "dark";
-  const themeClass = isDark ? "nfp-theme-dark dark" : "nfp-theme-light";
+  const themeClass = buildThemeClass(isDark);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

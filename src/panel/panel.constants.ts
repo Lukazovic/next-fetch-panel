@@ -32,6 +32,14 @@ export const METHOD_COLORS: Record<string, string> = {
   DELETE: "text-red-400",
 };
 
+export const PANEL_STYLES_ID = "next-fetch-panel-styles";
+export const THEME_CLASS_LIGHT = "nfp-theme-light";
+export const THEME_CLASS_DARK = "nfp-theme-dark dark";
+
+export function buildThemeClass(isDark: boolean): string {
+  return isDark ? THEME_CLASS_DARK : THEME_CLASS_LIGHT;
+}
+
 export const CLEARED_AT_KEY = "next-fetch-panel-cleared-at";
 export const SCROLL_AREA_VIEWPORT_SELECTOR = '[data-slot="scroll-area-viewport"]';
 export const SCROLL_BOTTOM_THRESHOLD_PX = 100;

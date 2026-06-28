@@ -1,4 +1,10 @@
-import { type RedactInput, BODY_LIMIT, SESSION_COOKIE, SESSION_HEADER } from "../domain";
+import {
+  type RedactInput,
+  BODY_LIMIT,
+  SESSION_COOKIE,
+  SESSION_HEADER,
+  DEV_NETWORK_ROUTE,
+} from "../domain";
 import { normalizeHeaders, extractRequestBody } from "./helpers/http";
 
 // Cached references — imported once, called per-request to read from the current ALS context.
@@ -78,11 +84,7 @@ export async function registerDevPanel(options?: {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
 
       // Skip Next.js / React internal fetches to avoid interfering with RSC and error overlays.
-      if (
-        url.includes("/__nextjs") ||
-        url.includes("/_next/") ||
-        url.includes("/api/dev-network")
-      ) {
+      if (url.includes("/__nextjs") || url.includes("/_next/") || url.includes(DEV_NETWORK_ROUTE)) {
         return originalFetch(input, init);
       }
 
