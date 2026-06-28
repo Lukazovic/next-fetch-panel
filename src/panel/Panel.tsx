@@ -28,6 +28,19 @@ import { SheetResizeHandle, FixedResizeHandle } from "./components/ResizeHandles
 import { SettingsDialog } from "./components/SettingsDialog";
 import { PanelInner } from "./components/PanelInner";
 
+function noopSubscribe() {
+  return () => {};
+}
+function getClientMounted() {
+  return true;
+}
+function getServerMounted() {
+  return false;
+}
+function getPanelClosedOnServer() {
+  return false;
+}
+
 type PanelProps = {
   showToggleButton: boolean;
   buttonPosition: ButtonPosition;
@@ -36,7 +49,11 @@ type PanelProps = {
 
 function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
   const [entries, setEntries] = useState<LogEntry[]>([]);
-  const open = useSyncExternalStore(panelState.subscribe, panelState.getSnapshot, () => false);
+  const open = useSyncExternalStore(
+    panelState.subscribe,
+    panelState.getSnapshot,
+    getPanelClosedOnServer
+  );
   const [selected, setSelected] = useState<LogEntry | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -283,7 +300,11 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
 }
 
 export function useDevNetworkPanel() {
-  const isOpen = useSyncExternalStore(panelState.subscribe, panelState.getSnapshot, () => false);
+  const isOpen = useSyncExternalStore(
+    panelState.subscribe,
+    panelState.getSnapshot,
+    getPanelClosedOnServer
+  );
   return {
     isOpen,
     open: panelState.open,
@@ -303,11 +324,7 @@ export default function DevNetworkPanel({
   buttonPosition?: ButtonPosition;
   bufferSize?: number;
 }) {
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+  const mounted = useSyncExternalStore(noopSubscribe, getClientMounted, getServerMounted);
   if (!enabled || !mounted) return null;
   return createPortal(
     <Panel

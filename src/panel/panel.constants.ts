@@ -47,3 +47,7 @@ export const FIXED_MIN_WIDTH_PX = 320;
 export const FIXED_MIN_HEIGHT_PX = 200;
 export const FIXED_MAX_WIDTH_FRACTION = 0.95;
 export const FIXED_MAX_HEIGHT_FRACTION = 0.9;
+export const SHEET_MAX_SIZE_FRACTION = 0.9;
+export const SHEET_MIN_SIZE_PX = 200;
+export const DURATION_BAR_MAX_MS = 2000;
+export const DETAIL_PANEL_ID = "detail";

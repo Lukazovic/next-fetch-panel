@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { BODY_LIMIT, type LogEntry } from "../../domain";
+import { DURATION_BAR_MAX_MS } from "../panel.constants";
 import {
   formatBytes,
   formatTs,
@@ -217,10 +218,14 @@ export function DetailPanel({ entry, onClose }: DetailPanelProps) {
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
                       className={cn("h-full rounded-full", durationBarColor(entry.duration))}
-                      style={{ width: `${Math.min((entry.duration / 2000) * 100, 100)}%` }}
+                      style={{
+                        width: `${Math.min((entry.duration / DURATION_BAR_MAX_MS) * 100, 100)}%`,
+                      }}
                     />
                   </div>
-                  <p className="text-[10px] text-muted-foreground/50 mt-1">scale: 0–2000ms</p>
+                  <p className="text-[10px] text-muted-foreground/50 mt-1">
+                    scale: 0–{DURATION_BAR_MAX_MS}ms
+                  </p>
                 </div>
               </div>
             </ScrollArea>

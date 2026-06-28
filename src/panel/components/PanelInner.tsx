@@ -11,6 +11,7 @@ import { methodClass, statusClass } from "../helpers/formatters";
 import { EntryActionsMenu } from "./EntryActionsMenu";
 import { DetailPanel } from "./DetailPanel";
 import type { LogEntry } from "../../domain";
+import { DETAIL_PANEL_ID } from "../panel.constants";
 
 type PanelInnerProps = {
   entries: LogEntry[];
@@ -67,7 +68,7 @@ export function PanelInner({
   }, [selected, groupRef]);
 
   function handleLayoutChanged(layout: Record<string, number>) {
-    const sz = layout["detail"];
+    const sz = layout[DETAIL_PANEL_ID];
     if (sz !== undefined && sz > 0) onDetailSizeChange(sz);
   }
 
@@ -226,7 +227,7 @@ export function PanelInner({
         {selected && (
           <>
             <ResizableHandle withHandle />
-            <ResizablePanel id="detail" minSize={10}>
+            <ResizablePanel id={DETAIL_PANEL_ID} minSize={10}>
               <DetailPanel entry={selected} onClose={() => setSelected(null)} />
             </ResizablePanel>
           </>

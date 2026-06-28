@@ -8,6 +8,8 @@ import {
   FIXED_MIN_HEIGHT_PX,
   FIXED_MAX_WIDTH_FRACTION,
   FIXED_MAX_HEIGHT_FRACTION,
+  SHEET_MAX_SIZE_FRACTION,
+  SHEET_MIN_SIZE_PX,
 } from "../panel.constants";
 
 type SheetResizeHandleProps = {
@@ -27,9 +29,9 @@ export function SheetResizeHandle({ side, onResize }: SheetResizeHandleProps) {
       else if (side === "right") size = window.innerWidth - ev.clientX;
       else size = ev.clientX;
       const max = isHorizontal
-        ? Math.round(window.innerHeight * 0.9)
-        : Math.round(window.innerWidth * 0.9);
-      onResize(Math.min(max, Math.max(200, Math.round(size))));
+        ? Math.round(window.innerHeight * SHEET_MAX_SIZE_FRACTION)
+        : Math.round(window.innerWidth * SHEET_MAX_SIZE_FRACTION);
+      onResize(Math.min(max, Math.max(SHEET_MIN_SIZE_PX, Math.round(size))));
     }
     function onUp() {
       window.removeEventListener("pointermove", onMove);
