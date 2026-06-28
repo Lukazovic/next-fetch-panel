@@ -4,10 +4,10 @@ import panelStyles from "./panel.styles";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { panelState } from "../store";
 import { createPortal } from "react-dom";
-import { cn } from "./utils";
-import { Button } from "./components/button";
-import { Badge } from "./components/badge";
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./components/sheet";
+import { cn } from "./cn";
+import { Button } from "./components/ui/button";
+import { Badge } from "./components/ui/badge";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./components/ui/sheet";
 import { BUFFER_SIZE, type LogEntry, SESSION_COOKIE } from "../domain";
 
 import {

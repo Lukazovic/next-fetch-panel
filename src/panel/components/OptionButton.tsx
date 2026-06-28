@@ -1,4 +1,4 @@
-import { cn } from "../utils";
+import { cn } from "../cn";
 
 export function OptionButton({
   active,

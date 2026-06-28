@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "../utils";
-import { Button } from "./button";
-import { ScrollArea } from "./scroll-area";
-import { Separator } from "./separator";
+import { cn } from "../cn";
+import { Button } from "./ui/button";
+import { ScrollArea } from "./ui/scroll-area";
+import { Separator } from "./ui/separator";
 import {
   Dialog,
   DialogClose,
@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./dialog";
+} from "./ui/dialog";
 import type { SheetSide, ColorScheme, PanelConfig } from "../panel.config";
 import { OptionButton } from "./OptionButton";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { cn } from "../utils";
+import { cn } from "../cn";
 import type { SheetSide } from "../panel.config";
 import {
   FIXED_MIN_WIDTH_PX,

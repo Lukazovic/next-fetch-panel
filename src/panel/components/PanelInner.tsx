@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useGroupRef } from "react-resizable-panels";
 import { SearchIcon, Settings2Icon, XIcon } from "lucide-react";
-import { cn } from "../utils";
-import { Button } from "./button";
-import { ScrollArea } from "./scroll-area";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./resizable";
+import { cn } from "../cn";
+import { Button } from "./ui/button";
+import { ScrollArea } from "./ui/scroll-area";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 import { methodClass, statusClass } from "../helpers/formatters";
 import { EntryActionsMenu } from "./EntryActionsMenu";
 import { DetailPanel } from "./DetailPanel";
