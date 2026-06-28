@@ -152,6 +152,20 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
     ? { height: config.height }
     : { width: config.width, maxWidth: config.width };
 
+  function handleSheetOpenChange(next: boolean) {
+    if (next) panelState.open();
+    else if (config.sheetModal) panelState.close();
+  }
+
+  function handleSheetResize(size: number) {
+    if (isHorizontal) update({ height: size });
+    else update({ width: size });
+  }
+
+  function handleFixedResize(w: number, h: number) {
+    update({ width: w, height: h });
+  }
+
   // Scoped theme class sets --nfp-* vars with hardcoded values so they are never
   // affected by the consumer's <html class="dark"> or any other ancestor.
   // The "dark" class is kept alongside for dark: utility selectors.
@@ -168,14 +182,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
       />
 
       {config.mode === "sheet" && (
-        <Sheet
-          open={open}
-          onOpenChange={(next) => {
-            if (next) panelState.open();
-            else if (config.sheetModal) panelState.close();
-          }}
-          modal={config.sheetModal}
-        >
+        <Sheet open={open} onOpenChange={handleSheetOpenChange} modal={config.sheetModal}>
           <SheetContent
             side={config.sheetSide}
             showCloseButton={false}
@@ -193,12 +200,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
 
             {/* Handle at start edge: top of bottom-sheet, left of right-sheet */}
             {(config.sheetSide === "bottom" || config.sheetSide === "right") && (
-              <SheetResizeHandle
-                side={config.sheetSide}
-                onResize={(size) =>
-                  isHorizontal ? update({ height: size }) : update({ width: size })
-                }
-              />
+              <SheetResizeHandle side={config.sheetSide} onResize={handleSheetResize} />
             )}
 
             {isHorizontal ? (
@@ -211,12 +213,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
 
             {/* Handle at end edge: bottom of top-sheet, right of left-sheet */}
             {(config.sheetSide === "top" || config.sheetSide === "left") && (
-              <SheetResizeHandle
-                side={config.sheetSide}
-                onResize={(size) =>
-                  isHorizontal ? update({ height: size }) : update({ width: size })
-                }
-              />
+              <SheetResizeHandle side={config.sheetSide} onResize={handleSheetResize} />
             )}
           </SheetContent>
         </Sheet>
@@ -236,22 +233,22 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
           <FixedResizeHandle
             direction="top"
             panelRef={fixedPanelRef}
-            onResize={(w, h) => update({ width: w, height: h })}
+            onResize={handleFixedResize}
           />
           <FixedResizeHandle
             direction="bottom"
             panelRef={fixedPanelRef}
-            onResize={(w, h) => update({ width: w, height: h })}
+            onResize={handleFixedResize}
           />
           <FixedResizeHandle
             direction="left"
             panelRef={fixedPanelRef}
-            onResize={(w, h) => update({ width: w, height: h })}
+            onResize={handleFixedResize}
           />
           <FixedResizeHandle
             direction="right"
             panelRef={fixedPanelRef}
-            onResize={(w, h) => update({ width: w, height: h })}
+            onResize={handleFixedResize}
           />
           <PanelInner {...innerProps} />
         </div>

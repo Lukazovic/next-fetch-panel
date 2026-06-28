@@ -66,6 +66,11 @@ export function PanelInner({
     if (!selected) wasSelectedRef.current = false;
   }, [selected, groupRef]);
 
+  function handleLayoutChanged(layout: Record<string, number>) {
+    const sz = layout["detail"];
+    if (sz !== undefined && sz > 0) onDetailSizeChange(sz);
+  }
+
   return (
     <>
       <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-1.5">
@@ -132,10 +137,7 @@ export function PanelInner({
         orientation="horizontal"
         className="flex-1 overflow-hidden"
         groupRef={groupRef}
-        onLayoutChanged={(layout) => {
-          const sz = (layout as Record<string, number>)["detail"];
-          if (sz !== undefined && sz > 0) onDetailSizeChange(sz);
-        }}
+        onLayoutChanged={handleLayoutChanged}
       >
         <ResizablePanel id="main" minSize={10}>
           <ScrollArea className="h-full">
