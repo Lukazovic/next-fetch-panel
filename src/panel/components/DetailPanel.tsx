@@ -15,7 +15,11 @@ import {
 } from "../helpers/formatters";
 import { downloadBody } from "../helpers/downloads";
 
-export function HeaderList({ headers }: { headers: Record<string, string> | undefined | null }) {
+type HeaderListProps = {
+  headers: Record<string, string> | undefined | null;
+};
+
+export function HeaderList({ headers }: HeaderListProps) {
   const entries = Object.entries(headers ?? {});
   if (entries.length === 0) return <p className="text-muted-foreground text-[11px]">No headers</p>;
   return (
@@ -32,15 +36,13 @@ export function HeaderList({ headers }: { headers: Record<string, string> | unde
   );
 }
 
-export function BodyTruncatedNotice({
-  kind,
-  captured,
-  contentLength,
-}: {
+type BodyTruncatedNoticeProps = {
   kind: "Request" | "Response";
   captured: number;
   contentLength?: number | null;
-}) {
+};
+
+export function BodyTruncatedNotice({ kind, captured, contentLength }: BodyTruncatedNoticeProps) {
   return (
     <div className="rounded border border-yellow-500/30 bg-yellow-500/5 px-2.5 py-2 flex flex-col gap-1">
       <p className="text-[11px] font-semibold text-yellow-500">{kind} body truncated</p>
@@ -59,17 +61,14 @@ export function BodyTruncatedNotice({
   );
 }
 
-export function BodyViewer({
-  body,
-  contentType,
-  emptyLabel,
-  downloadName,
-}: {
+type BodyViewerProps = {
   body: string | null | undefined;
   contentType: string | null;
   emptyLabel: string;
   downloadName?: string;
-}) {
+};
+
+export function BodyViewer({ body, contentType, emptyLabel, downloadName }: BodyViewerProps) {
   // Track which body string the user has chosen to render — implicitly resets
   // when body changes because the new value won't equal the stored one.
   const [revealedBody, setRevealedBody] = useState<string | null>(null);
@@ -118,7 +117,12 @@ export function BodyViewer({
   );
 }
 
-export function DetailPanel({ entry, onClose }: { entry: LogEntry; onClose: () => void }) {
+type DetailPanelProps = {
+  entry: LogEntry;
+  onClose: () => void;
+};
+
+export function DetailPanel({ entry, onClose }: DetailPanelProps) {
   let pathname = entry.url;
   try {
     pathname = new URL(entry.url).pathname;

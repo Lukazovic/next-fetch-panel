@@ -15,19 +15,15 @@ import {
 import type { SheetSide, ColorScheme, PanelConfig } from "../panel.config";
 import { OptionButton } from "./OptionButton";
 
-export function SettingsDialog({
-  config,
-  update,
-  open,
-  onOpenChange,
-  theme,
-}: {
+type SettingsDialogProps = {
   config: PanelConfig;
   update: (p: Partial<PanelConfig>) => void;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   theme: "light" | "dark";
-}) {
+};
+
+export function SettingsDialog({ config, update, open, onOpenChange, theme }: SettingsDialogProps) {
   const isDark = theme === "dark";
   const themeClass = isDark ? "nfp-theme-dark dark" : "nfp-theme-light";
 

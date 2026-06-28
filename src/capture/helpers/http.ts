@@ -47,10 +47,15 @@ export function wasTruncated(result: string | null, bodyLimit: number): boolean 
  * Reads the body from a fetch RequestInit and returns a size-capped string.
  * Binary body types (Blob, ArrayBuffer, FormData) are represented as "[binary]".
  */
+type ExtractRequestBodyResult = {
+  body: string | null;
+  truncated: boolean;
+};
+
 export function extractRequestBody(
   init: RequestInit | undefined,
   bodyLimit: number
-): { body: string | null; truncated: boolean } {
+): ExtractRequestBodyResult {
   const raw = init?.body;
   if (raw == null) return { body: null, truncated: false };
   if (typeof raw === "string")

@@ -15,7 +15,11 @@ import {
 } from "./ui/dropdown-menu";
 import type { LogEntry } from "../../domain";
 
-export function EntryActionsMenu({ entry }: { entry: LogEntry }) {
+type EntryActionsMenuProps = {
+  entry: LogEntry;
+};
+
+export function EntryActionsMenu({ entry }: EntryActionsMenuProps) {
   const themeClass = useContext(PanelThemeContext);
   const [copied, setCopied] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);

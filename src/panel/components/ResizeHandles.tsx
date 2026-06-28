@@ -10,13 +10,12 @@ import {
   FIXED_MAX_HEIGHT_FRACTION,
 } from "../panel.constants";
 
-export function SheetResizeHandle({
-  side,
-  onResize,
-}: {
+type SheetResizeHandleProps = {
   side: SheetSide;
   onResize: (size: number) => void;
-}) {
+};
+
+export function SheetResizeHandle({ side, onResize }: SheetResizeHandleProps) {
   const isHorizontal = side === "bottom" || side === "top";
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -58,15 +57,13 @@ export function SheetResizeHandle({
   );
 }
 
-export function FixedResizeHandle({
-  direction,
-  panelRef,
-  onResize,
-}: {
+type FixedResizeHandleProps = {
   direction: "top" | "bottom" | "left" | "right";
   panelRef: React.RefObject<HTMLDivElement | null>;
   onResize: (w: number, h: number) => void;
-}) {
+};
+
+export function FixedResizeHandle({ direction, panelRef, onResize }: FixedResizeHandleProps) {
   const isHorizontal = direction === "top" || direction === "bottom";
 
   function handlePointerDown(e: React.PointerEvent) {

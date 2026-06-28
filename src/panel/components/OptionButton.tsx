@@ -1,14 +1,12 @@
 import { cn } from "../cn";
 
-export function OptionButton({
-  active,
-  onClick,
-  children,
-}: {
+type OptionButtonProps = {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-}) {
+};
+
+export function OptionButton({ active, onClick, children }: OptionButtonProps) {
   return (
     <button
       onClick={onClick}

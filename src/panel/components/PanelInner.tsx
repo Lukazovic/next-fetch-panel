@@ -12,6 +12,18 @@ import { EntryActionsMenu } from "./EntryActionsMenu";
 import { DetailPanel } from "./DetailPanel";
 import type { LogEntry } from "../../domain";
 
+type PanelInnerProps = {
+  entries: LogEntry[];
+  selected: LogEntry | null;
+  setSelected: (e: LogEntry | null) => void;
+  onClear: () => void;
+  onOpenSettings: () => void;
+  onClose: () => void;
+  bottomRef: React.RefObject<HTMLDivElement | null>;
+  detailSize: number;
+  onDetailSizeChange: (size: number) => void;
+};
+
 export function PanelInner({
   entries,
   selected,
@@ -22,17 +34,7 @@ export function PanelInner({
   bottomRef,
   detailSize,
   onDetailSizeChange,
-}: {
-  entries: LogEntry[];
-  selected: LogEntry | null;
-  setSelected: (e: LogEntry | null) => void;
-  onClear: () => void;
-  onOpenSettings: () => void;
-  onClose: () => void;
-  bottomRef: React.RefObject<HTMLDivElement | null>;
-  detailSize: number;
-  onDetailSizeChange: (size: number) => void;
-}) {
+}: PanelInnerProps) {
   const [filter, setFilter] = useState("");
   const filteredEntries = filter
     ? entries.filter((e) => e.url.toLowerCase().includes(filter.toLowerCase()))

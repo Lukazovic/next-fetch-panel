@@ -26,15 +26,13 @@ import { SheetResizeHandle, FixedResizeHandle } from "./components/ResizeHandles
 import { SettingsDialog } from "./components/SettingsDialog";
 import { PanelInner } from "./components/PanelInner";
 
-function Panel({
-  showToggleButton,
-  buttonPosition,
-  bufferSize,
-}: {
+type PanelProps = {
   showToggleButton: boolean;
   buttonPosition: ButtonPosition;
   bufferSize: number;
-}) {
+};
+
+function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const open = useSyncExternalStore(panelState.subscribe, panelState.getSnapshot, () => false);
   const [selected, setSelected] = useState<LogEntry | null>(null);
