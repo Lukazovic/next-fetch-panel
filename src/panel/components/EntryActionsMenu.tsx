@@ -2,7 +2,7 @@
 
 import { useContext, useState, useRef, useEffect } from "react";
 import { CheckIcon, CopyIcon, DownloadIcon, EllipsisIcon } from "lucide-react";
-import { cn } from "../cn";
+import { cn } from "../helpers/cn";
 import { PanelThemeContext } from "../PanelThemeContext";
 import { toCurl } from "../helpers/formatters";
 import { downloadBody, downloadEntry } from "../helpers/downloads";

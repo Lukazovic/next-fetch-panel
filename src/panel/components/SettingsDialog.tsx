@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "../cn";
+import { cn } from "../helpers/cn";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";

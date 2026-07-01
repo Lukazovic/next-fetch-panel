@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useGroupRef } from "react-resizable-panels";
 import { SearchIcon, Settings2Icon, XIcon } from "lucide-react";
-import { cn } from "../cn";
+import { cn } from "../helpers/cn";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";

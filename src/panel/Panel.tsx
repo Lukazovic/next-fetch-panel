@@ -4,7 +4,7 @@ import panelStyles from "./panel.styles";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { panelState } from "../store";
 import { createPortal } from "react-dom";
-import { cn } from "./cn";
+import { cn } from "./helpers/cn";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./components/ui/sheet";

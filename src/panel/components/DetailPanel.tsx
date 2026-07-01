@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "../cn";
+import { cn } from "../helpers/cn";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
