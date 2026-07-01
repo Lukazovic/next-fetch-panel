@@ -43,9 +43,11 @@ export function wasTruncated(result: string | null, bodyLimit: number): boolean 
   return result !== null && result.length >= bodyLimit;
 }
 
+export const BINARY_BODY = "[binary]";
+
 /**
  * Reads the body from a fetch RequestInit and returns a size-capped string.
- * Binary body types (Blob, ArrayBuffer, FormData) are represented as "[binary]".
+ * Binary body types (Blob, ArrayBuffer, FormData) are represented as BINARY_BODY.
  */
 type ExtractRequestBodyResult = {
   body: string | null;
@@ -64,5 +66,5 @@ export function extractRequestBody(
     const s = raw.toString();
     return { body: s.slice(0, bodyLimit), truncated: s.length > bodyLimit };
   }
-  return { body: "[binary]", truncated: false };
+  return { body: BINARY_BODY, truncated: false };
 }

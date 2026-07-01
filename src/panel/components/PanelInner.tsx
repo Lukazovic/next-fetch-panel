@@ -11,7 +11,7 @@ import { methodClass, statusClass } from "../helpers/formatters";
 import { EntryActionsMenu } from "./EntryActionsMenu";
 import { DetailPanel } from "./DetailPanel";
 import type { LogEntry } from "../../domain";
-import { DETAIL_PANEL_ID } from "../panel.constants";
+import { DETAIL_PANEL_ID, MAIN_PANEL_ID, PANEL_MIN_SIZE_PCT } from "../panel.constants";
 
 type PanelInnerProps = {
   entries: LogEntry[];
@@ -59,7 +59,7 @@ export function PanelInner({
     if (selected && !wasSelectedRef.current) {
       const sz = detailSizeRef.current;
       const id = setTimeout(() => {
-        groupRef.current?.setLayout({ main: 100 - sz, detail: sz });
+        groupRef.current?.setLayout({ [MAIN_PANEL_ID]: 100 - sz, [DETAIL_PANEL_ID]: sz });
       }, 0);
       wasSelectedRef.current = true;
       return () => clearTimeout(id);
@@ -140,7 +140,7 @@ export function PanelInner({
         groupRef={groupRef}
         onLayoutChanged={handleLayoutChanged}
       >
-        <ResizablePanel id="main" minSize={10}>
+        <ResizablePanel id="main" minSize={PANEL_MIN_SIZE_PCT}>
           <ScrollArea className="h-full">
             <table className="w-full border-collapse">
               <thead>
@@ -227,7 +227,7 @@ export function PanelInner({
         {selected && (
           <>
             <ResizableHandle withHandle />
-            <ResizablePanel id={DETAIL_PANEL_ID} minSize={10}>
+            <ResizablePanel id={DETAIL_PANEL_ID} minSize={PANEL_MIN_SIZE_PCT}>
               <DetailPanel entry={selected} onClose={() => setSelected(null)} />
             </ResizablePanel>
           </>

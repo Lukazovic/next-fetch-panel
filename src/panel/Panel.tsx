@@ -8,7 +8,13 @@ import { cn } from "./cn";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./components/ui/sheet";
-import { BUFFER_SIZE, type LogEntry, SESSION_COOKIE, DEV_NETWORK_ROUTE } from "../domain";
+import {
+  BUFFER_SIZE,
+  type LogEntry,
+  SESSION_COOKIE,
+  DEV_NETWORK_ROUTE,
+  SESSION_COOKIE_MAX_AGE,
+} from "../domain";
 
 import {
   type ButtonPosition,
@@ -19,6 +25,8 @@ import {
   SCROLL_BOTTOM_THRESHOLD_PX,
   PANEL_STYLES_ID,
   buildThemeClass,
+  SSE_RETRY_INITIAL_MS,
+  SSE_RETRY_MAX_MS,
 } from "./panel.constants";
 
 import { usePanelConfig } from "./hooks/usePanelConfig";
@@ -76,12 +84,12 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
   useEffect(() => {
     // Fallback: create the session cookie if middleware didn't (e.g. /api/* excluded from matcher).
     if (!document.cookie.split("; ").some((c) => c.startsWith(`${SESSION_COOKIE}=`))) {
-      document.cookie = `${SESSION_COOKIE}=${crypto.randomUUID()}; path=/; samesite=lax; max-age=31536000`;
+      document.cookie = `${SESSION_COOKIE}=${crypto.randomUUID()}; path=/; samesite=lax; max-age=${SESSION_COOKIE_MAX_AGE}`;
     }
 
     let current: EventSource | null = null;
     let retryTimeout: ReturnType<typeof setTimeout> | undefined;
-    let retryDelay = 1_000;
+    let retryDelay = SSE_RETRY_INITIAL_MS;
     let destroyed = false;
 
     function connect() {
@@ -90,7 +98,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
       current = es;
 
       es.onopen = () => {
-        retryDelay = 1_000;
+        retryDelay = SSE_RETRY_INITIAL_MS;
       };
 
       es.onmessage = (event) => {
@@ -115,7 +123,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
         if (es.readyState === EventSource.CLOSED) {
           current = null;
           retryTimeout = setTimeout(() => {
-            retryDelay = Math.min(retryDelay * 2, 30_000);
+            retryDelay = Math.min(retryDelay * 2, SSE_RETRY_MAX_MS);
             connect();
           }, retryDelay);
         }

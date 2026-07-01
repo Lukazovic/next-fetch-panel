@@ -6,6 +6,8 @@ import { cn } from "../cn";
 import { PanelThemeContext } from "../PanelThemeContext";
 import { toCurl } from "../helpers/formatters";
 import { downloadBody, downloadEntry } from "../helpers/downloads";
+import { BINARY_BODY } from "../../capture/helpers/http";
+import { COPY_FEEDBACK_MS } from "../panel.constants";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +37,7 @@ export function EntryActionsMenu({ entry }: EntryActionsMenuProps) {
     navigator.clipboard.writeText(toCurl(entry)).then(() => {
       setCopied(true);
       clearTimeout(copiedTimerRef.current);
-      copiedTimerRef.current = setTimeout(() => setCopied(false), 1500);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
     });
   }
 
@@ -64,7 +66,7 @@ export function EntryActionsMenu({ entry }: EntryActionsMenuProps) {
             Download response body
           </DropdownMenuItem>
         )}
-        {entry.requestBody && entry.requestBody !== "[binary]" && (
+        {entry.requestBody && entry.requestBody !== BINARY_BODY && (
           <DropdownMenuItem
             onClick={() => downloadBody(entry.requestBody!, `${downloadName}-request`)}
           >
