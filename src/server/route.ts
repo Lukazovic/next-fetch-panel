@@ -2,6 +2,8 @@ import { cookies, headers } from "next/headers";
 import { devLogStore } from "../store";
 import { SESSION_COOKIE, SESSION_HEADER } from "../domain";
 
+const SSE_HEARTBEAT_MS = 8_000;
+
 export const dynamic = "force-dynamic";
 
 type GuardFn = (
@@ -76,7 +78,7 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
           } catch {
             /* closed */
           }
-        }, 8_000);
+        }, SSE_HEARTBEAT_MS);
 
         unsubscribe = devLogStore.subscribe((entry) => {
           if (!sessionId || entry.sessionId !== sessionId) return;

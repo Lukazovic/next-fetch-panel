@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, SESSION_HEADER } from "../domain";
+import { SESSION_COOKIE, SESSION_HEADER, SESSION_COOKIE_MAX_AGE } from "../domain";
 
 type MiddlewareResult =
   | NextResponse
@@ -68,7 +68,7 @@ export function withDevPanel<TRequest = NextRequest>(
       response.cookies.set(SESSION_COOKIE, sid, {
         sameSite: "lax",
         path: "/",
-        maxAge: 60 * 60 * 24 * 365,
+        maxAge: SESSION_COOKIE_MAX_AGE,
       });
     }
 
