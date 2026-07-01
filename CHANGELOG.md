@@ -1,22 +1,5 @@
 # Changelog
 
-## [0.6.1] — 2026-06-28 (internal)
-
-### Internal
-
-- **Module split** — `src/panel/Panel.tsx` is now a thin orchestrator. UI split into `PanelInner`, `DetailPanel`, `SettingsDialog`, `ResizeHandles`, and `OptionButton` components.
-- **`components/ui/`** — shadcn/base-ui primitives moved from `components/` to `components/ui/` to separate vendor primitives from custom components.
-- **`cn.ts`** — `utils.ts` renamed to `cn.ts`; internal imports updated to `"../cn"` and `"../../cn"`.
-- **`panel.config.ts` / `panel.constants.ts`** — config types and UI constants extracted from `Panel.tsx` into dedicated modules; theme class strings (`THEME_CLASS_LIGHT`, `THEME_CLASS_DARK`), `buildThemeClass`, `PANEL_STYLES_ID`, and numeric constants (`SHEET_MAX_SIZE_FRACTION`, `SHEET_MIN_SIZE_PX`, `DURATION_BAR_MAX_MS`, `DETAIL_PANEL_ID`) added.
-- **`hooks/`** — `usePanelConfig` and `useEffectiveTheme` extracted to `panel/hooks/`.
-- **`helpers/`** — pure display functions (`formatters.ts`) and DOM side effects (`downloads.ts`) extracted to `panel/helpers/`; HTTP helpers (`normalizeHeaders`, `stringify`, `wasTruncated`, `extractRequestBody`) extracted to `capture/helpers/http.ts`.
-- **`domain/routes.ts`** — `DEV_NETWORK_ROUTE = "/api/dev-network"` centralized; consumed by `fetch-patch.ts` and `Panel.tsx`.
-- **Named anonymous concepts** — `useSyncExternalStore` lambdas extracted to named module-level functions (`noopSubscribe`, `getClientMounted`, `getServerMounted`, `getPanelClosedOnServer`); magic panel ID string `"detail"` → `DETAIL_PANEL_ID`.
-
-No public API changes. `DevNetworkPanel`, `useDevNetworkPanel`, `ButtonPosition`, `LogEntry` — all public exports — remain identical.
-
----
-
 ## [0.6.0] — 2026-06-18
 
 ### Added
