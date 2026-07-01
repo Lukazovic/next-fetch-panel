@@ -20,7 +20,6 @@ import {
   type ButtonPosition,
   BUTTON_POSITION_CLASSES,
   FIXED_PANEL_POSITION_CLASSES,
-  CLEARED_AT_KEY,
   SCROLL_AREA_VIEWPORT_SELECTOR,
   SCROLL_BOTTOM_THRESHOLD_PX,
   PANEL_STYLES_ID,
@@ -31,6 +30,7 @@ import {
 
 import { usePanelConfig } from "./hooks/usePanelConfig";
 import { useEffectiveTheme } from "./hooks/useEffectiveTheme";
+import { useClearedAt } from "./hooks/useClearedAt";
 import { PanelThemeContext } from "./PanelThemeContext";
 import { SheetResizeHandle, FixedResizeHandle } from "./components/ResizeHandles";
 import { SettingsDialog } from "./components/SettingsDialog";
@@ -66,7 +66,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fixedPanelRef = useRef<HTMLDivElement>(null);
-  const clearedAtRef = useRef<number>(Number(localStorage.getItem(CLEARED_AT_KEY)) || 0);
+  const { clearedAtRef, persistClearedAt } = useClearedAt();
   const seenIdsRef = useRef<Set<string>>(new Set());
   const { config, update } = usePanelConfig();
   const theme = useEffectiveTheme(config.colorScheme);
@@ -141,9 +141,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
   }, []);
 
   function handleClear() {
-    const ts = Date.now();
-    clearedAtRef.current = ts;
-    localStorage.setItem(CLEARED_AT_KEY, String(ts));
+    persistClearedAt(Date.now());
     setEntries([]);
     setSelected(null);
   }
