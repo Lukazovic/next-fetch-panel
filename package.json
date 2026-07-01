@@ -13,6 +13,19 @@
     "debugging"
   ],
   "license": "MIT",
+  "author": "Lucas Vieira <lucas10.vieira.lv@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lukazovic/next-fetch-panel"
+  },
+  "homepage": "https://github.com/Lukazovic/next-fetch-panel#readme",
+  "bugs": {
+    "url": "https://github.com/Lukazovic/next-fetch-panel/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/Lukazovic"
+  },
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.cjs",
