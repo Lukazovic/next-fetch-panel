@@ -1,8 +1,11 @@
 import type { LogEntry } from "../../domain";
+import { serializeEntry, tryPrettyJson } from "./formatters";
 
 export function downloadBody(body: string, filename: string): void {
   const isJson = body.trimStart().startsWith("{") || body.trimStart().startsWith("[");
-  const blob = new Blob([body], { type: isJson ? "application/json" : "text/plain" });
+  const blob = new Blob([isJson ? tryPrettyJson(body) : body], {
+    type: isJson ? "application/json" : "text/plain",
+  });
   const href = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = href;
@@ -12,7 +15,7 @@ export function downloadBody(body: string, filename: string): void {
 }
 
 export function downloadEntry(entry: LogEntry): void {
-  const blob = new Blob([JSON.stringify(entry, null, 2)], { type: "application/json" });
+  const blob = new Blob([serializeEntry(entry)], { type: "application/json" });
   const href = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = href;

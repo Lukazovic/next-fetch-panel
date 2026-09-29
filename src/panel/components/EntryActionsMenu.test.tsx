@@ -169,14 +169,13 @@ describe("EntryActionsMenu", () => {
     expect(screen.queryByText("Copy request body")).toBeNull();
   });
 
-  it('"Copy full request data" copies the entry as formatted JSON', async () => {
-    const entry = makeEntry();
-    const user = renderMenu(entry);
+  it('"Copy full request data" copies the entry with JSON bodies nested as objects', async () => {
+    const user = renderMenu(makeEntry({ responseBody: '{"ok":true}' }));
     await user.click(screen.getByTitle("Actions"));
     await user.click(await screen.findByText("Copy full request data"));
-    expect(vi.mocked(navigator.clipboard.writeText)).toHaveBeenCalledWith(
-      JSON.stringify(entry, null, 2)
-    );
+    const [copied] = vi.mocked(navigator.clipboard.writeText).mock.calls[0];
+    expect(JSON.parse(copied)).toEqual({ ...makeEntry(), responseBody: { ok: true } });
+    expect(copied).toContain('\n  "id": "test-id"');
   });
 
   it("trigger turns green after copying a body", async () => {

@@ -4,7 +4,7 @@ import { useContext, useState, useRef, useEffect } from "react";
 import { CheckIcon, CopyIcon, DownloadIcon, EllipsisIcon } from "lucide-react";
 import { cn } from "../helpers/cn";
 import { PanelThemeContext } from "../PanelThemeContext";
-import { toCurl, tryPrettyJson } from "../helpers/formatters";
+import { serializeEntry, toCurl, tryPrettyJson } from "../helpers/formatters";
 import { downloadBody, downloadEntry } from "../helpers/downloads";
 import { BINARY_BODY } from "../../capture/helpers/http";
 import { COPY_FEEDBACK_MS } from "../panel.constants";
@@ -72,7 +72,7 @@ export function EntryActionsMenu({ entry }: EntryActionsMenuProps) {
             Copy request body
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={() => copy(JSON.stringify(entry, null, 2))}>
+        <DropdownMenuItem onClick={() => copy(serializeEntry(entry))}>
           <CopyIcon className="size-3 shrink-0" />
           Copy full request data
         </DropdownMenuItem>

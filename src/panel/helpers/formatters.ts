@@ -50,6 +50,34 @@ export function tryPrettyJson(text: string): string {
   }
 }
 
+function parseJsonBody(body: string | null | undefined): unknown {
+  if (!body) return body;
+  const trimmed = body.trimStart();
+  // Only objects/arrays — a body like "123" or "true" must stay a string.
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return body;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
+}
+
+/**
+ * Serializes an entry for export (copy / download). JSON bodies are nested as
+ * objects so they read naturally instead of as escaped one-line strings.
+ */
+export function serializeEntry(entry: LogEntry): string {
+  return JSON.stringify(
+    {
+      ...entry,
+      requestBody: parseJsonBody(entry.requestBody),
+      responseBody: parseJsonBody(entry.responseBody),
+    },
+    null,
+    2
+  );
+}
+
 export function toCurl(entry: LogEntry): string {
   const parts = [`curl -X ${entry.method} '${entry.url.replace(/'/g, "'\\''")}'`];
   for (const [k, v] of Object.entries(entry.requestHeaders ?? {})) {
