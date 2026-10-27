@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.7.0] — 2026-10-27
+
+### Breaking
+
+- **`LogEntry.ts` renamed to `LogEntry.timestamp`** — the field holding the request start time (ms since epoch) has a clearer name. This changes the `LogEntry` type and the JSON sent by the SSE stream and the snapshot endpoint (`GET /api/dev-network/snapshot`). **Migration:** replace `entry.ts` with `entry.timestamp`, for example in CI scripts that read snapshot artifacts.
+- **`createDevPanelAxiosInterceptors().request` now returns `T | Promise<T>`** — it stays synchronous at runtime unless `allowMocks` is set, so passing it to `interceptors.request.use()` works as before. This only matters if you call `request(config)` yourself and use the result as a config without `await`.
+
+### Added
+
+- **Mock responses for QA** — the panel can force the response of a server-side request for the current browser session only: a status code with an optional body, a network error, and/or a delay. This makes error cases that are hard to reproduce testable on demand.
+  - Open the `…` menu on a request and choose **Mock this request…** (method and URL path are prefilled). The **Mocks (n)** button in the header lists and removes active rules.
+  - Mocked entries show a **MOCK** badge and have `mocked: true` on `LogEntry`.
+  - Works with native `fetch` and with the axios interceptors. Network errors look real: `TypeError: fetch failed` for fetch, an `AxiosError` with `code: "ERR_NETWORK"` for axios. `validateStatus` is respected.
+  - Rules are stored in a session cookie (`__nfp_mocks`), so they work across multiple server instances and never affect other users. All rules share one ~4 KB cookie, so mocks are meant for error payloads and short bodies.
+  - **Off by default.** Must be allowed on both sides: `allowMocks` on `registerDevPanel` / `createDevPanelAxiosInterceptors` and on `<DevNetworkPanel>`. Never allow it in production; see "Mocking responses" in the README.
+- **Copy actions in the request menu** — **Copy response body**, **Copy request body**, and **Copy full request data**, next to the existing downloads, for pasting into Slack or an issue. JSON bodies are copied pretty-printed. The trigger turns green to confirm, like **Copy as cURL**.
+
+### Changed
+
+- **Readable JSON exports** — **Copy/Download full request data** now nests JSON bodies as objects instead of escaped one-line strings (`"responseBody": { ... }` instead of `"responseBody": "{\"...\"}"`). Non-JSON bodies (text, HTML, `[binary]`, truncated JSON) stay strings. **Download response/request body** now writes pretty-printed JSON. Exported JSON bodies are re-serialized, so they are no longer byte-for-byte identical to the captured body. **Copy as cURL** still uses the raw body.
+- **SSE heartbeat lowered from 8 s to 5 s** — more margin below common proxy idle timeouts (~10 s for Varnish), so idle connections drop less often.
+- **Package is now ESM-first (`"type": "module"`)** — ESM builds are `dist/*.js` and CommonJS builds are `dist/*.cjs` (previously `dist/*.mjs` and `dist/*.js`). Imports through the package entry points (`next-fetch-panel`, `/patch`, `/middleware`, `/route`, `/interceptor`) are unaffected; only deep imports into `dist/` need updating.
+
+### Fixed
+
+- **Full buffer replay on manual SSE reconnect** — when the stream failed with a fatal error (e.g. a 503 from a proxy), the panel opened a new `EventSource`, which doesn't carry `Last-Event-ID` over, and the server re-sent the whole session buffer. The panel now passes the last received id as `?lastEventId=`, and the route uses it when the header is absent (the header still wins).
+
+### Internal
+
+- **Layered `src/` structure** — code split into `domain/`, `store/`, `capture/`, `server/`, and `panel/`. `Panel.tsx` is now a thin orchestrator over `PanelInner`, `DetailPanel`, `SettingsDialog`, `EntryActionsMenu`, `ResizeHandles`, hooks (`usePanelConfig`, `useEffectiveTheme`, `useClearedAt`), and helpers (`formatters`, `downloads`). Magic values were replaced with named constants.
+- **Test suite and CI** — unit, integration, and UI tests (Vitest + React Testing Library), Playwright E2E tests against a fixture Next.js app, and a CI workflow running lint, format, typecheck, unit, and E2E jobs. UI tests run on Node 25+ (Node's built-in `localStorage` global is disabled for Vitest workers).
+- **Project docs** — `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `LICENSE` (MIT), `AGENTS.md`, and `LOCAL-TESTING.md` (how to test the library in a local Next.js app).
+- `.tool-versions` pins Node.js 26.12.1.
+
+---
+
 ## [0.6.0] — 2026-06-18
 
 ### Added
