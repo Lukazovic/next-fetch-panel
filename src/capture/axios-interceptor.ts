@@ -6,8 +6,19 @@ import {
   type RedactInput,
   SESSION_COOKIE,
   SESSION_HEADER,
+  findMock,
+  type MockRule,
 } from "../domain";
 import { normalizeHeaders, stringify, wasTruncated } from "./helpers/http";
+import { delay, mockContentType, readMockRules } from "./helpers/mocks";
+
+// Mirror axios's own AxiosError codes/messages so app error handling treats
+// mocked responses exactly like real ones (axios.isAxiosError checks isAxiosError).
+const AXIOS_ERR_NETWORK = "ERR_NETWORK";
+const AXIOS_ERR_BAD_REQUEST = "ERR_BAD_REQUEST";
+const AXIOS_ERR_BAD_RESPONSE = "ERR_BAD_RESPONSE";
+const AXIOS_NETWORK_ERROR_MESSAGE = "Network Error";
+const HTTP_SERVER_ERROR_MIN = 500;
 
 // Cached after first import — module resolution is async but the reference is reused.
 let nextHeaders: (typeof import("next/headers"))["headers"] | null = null;
@@ -28,6 +39,7 @@ async function push(
     responseBody?: string | null;
     requestBodyTruncated?: boolean;
     responseBodyTruncated?: boolean;
+    mocked?: boolean;
   },
   config: import("../domain").RedactConfig
 ) {
@@ -63,6 +75,7 @@ async function push(
           requestBodyTruncated: entry.requestBodyTruncated,
           responseBodyTruncated: entry.responseBodyTruncated,
           sessionId,
+          mocked: entry.mocked,
         },
         config
       )
@@ -71,6 +84,55 @@ async function push(
 }
 
 type Timing = { startTime: number; ts: number; url: string };
+
+type AxiosConfigLike = Record<string, unknown>;
+
+function axiosLikeError(
+  message: string,
+  code: string,
+  config: object,
+  response?: Record<string, unknown>
+) {
+  return Object.assign(new Error(message), {
+    name: "AxiosError",
+    code,
+    config,
+    request: {},
+    response,
+    isAxiosError: true,
+  });
+}
+
+/**
+ * Returns an axios adapter that answers with the rule's response instead of making
+ * the request. Status validation mirrors axios's settle(): validateStatus decides
+ * between resolve and reject. transformResponse still runs on `data` afterwards.
+ */
+function createMockAdapter(rule: MockRule) {
+  return async function mockAdapter(config: AxiosConfigLike) {
+    await delay(rule.delayMs);
+    if (rule.action.type === "network-error") {
+      throw axiosLikeError(AXIOS_NETWORK_ERROR_MESSAGE, AXIOS_ERR_NETWORK, config);
+    }
+    const { status, body } = rule.action;
+    const response = {
+      data: body ?? "",
+      status,
+      statusText: "",
+      headers: body ? { "content-type": mockContentType(body) } : {},
+      config,
+      request: {},
+    };
+    const validateStatus = config.validateStatus as ((s: number) => boolean) | null | undefined;
+    if (!validateStatus || validateStatus(status)) return response;
+    throw axiosLikeError(
+      `Request failed with status code ${status}`,
+      status >= HTTP_SERVER_ERROR_MIN ? AXIOS_ERR_BAD_RESPONSE : AXIOS_ERR_BAD_REQUEST,
+      config,
+      response
+    );
+  };
+}
 
 function resolveUrl(config: Record<string, unknown>): string {
   const base = String(config.baseURL ?? "").replace(/\/$/, "");
@@ -121,11 +183,19 @@ function resolveUrl(config: Record<string, unknown>): string {
  * Redaction options:
  *   createDevPanelAxiosInterceptors({ redact: (d) => ({ ...d, bodyKeys: [...d.bodyKeys, "my_field"] }) })
  *   createDevPanelAxiosInterceptors({ redact: { headers: [] } })  // disable header redaction
+ *
+ * Mocks (QA / dev only — see README "Mocking responses"):
+ *   createDevPanelAxiosInterceptors({ allowMocks: process.env.NFP_ALLOW_MOCKS === "true" })
  */
 export function createDevPanelAxiosInterceptors(options?: {
   redact?: RedactInput;
   enabled?: boolean;
   bodyLimit?: number;
+  /**
+   * Lets the panel mock responses (status, body, network error, delay) for the
+   * current browser session. Off by default — never enable it in production.
+   */
+  allowMocks?: boolean;
 }) {
   if (options?.enabled === false) {
     return {
@@ -138,14 +208,26 @@ export function createDevPanelAxiosInterceptors(options?: {
   const redactConfig = resolveRedactConfig(options?.redact);
   const bodyLimit = options?.bodyLimit ?? DEFAULT_BODY_LIMIT;
   const timings = new WeakMap<object, Timing>();
+  const mockedConfigs = new WeakSet<object>();
 
-  function request<T extends object>(config: T): T {
-    timings.set(config, {
-      startTime: performance.now(),
-      ts: Date.now(),
-      url: resolveUrl(config as Record<string, unknown>),
-    });
+  async function attachMock<T extends object>(config: T, url: string): Promise<T> {
+    const c = config as AxiosConfigLike;
+    const rule = findMock(await readMockRules(), String(c.method ?? "GET"), url);
+    if (!rule) return config;
+    mockedConfigs.add(config);
+    c.adapter = createMockAdapter(rule);
     return config;
+  }
+
+  // Stays synchronous unless mocks are allowed, so existing setups are unaffected.
+  function request<T extends object>(config: T): T | Promise<T> {
+    const url = resolveUrl(config as AxiosConfigLike);
+    timings.set(config, { startTime: performance.now(), ts: Date.now(), url });
+    return options?.allowMocks ? attachMock(config, url) : config;
+  }
+
+  function isMocked(config: unknown): true | undefined {
+    return config && typeof config === "object" && mockedConfigs.has(config) ? true : undefined;
   }
 
   async function response<T>(res: T): Promise<T> {
@@ -175,6 +257,7 @@ export function createDevPanelAxiosInterceptors(options?: {
           responseBody: resBody,
           requestBodyTruncated: wasTruncated(reqBody, bodyLimit),
           responseBodyTruncated: wasTruncated(resBody, bodyLimit),
+          mocked: isMocked(config),
         },
         redactConfig
       );
@@ -208,6 +291,7 @@ export function createDevPanelAxiosInterceptors(options?: {
               responseBody: resBody,
               requestBodyTruncated: wasTruncated(reqBody, bodyLimit),
               responseBodyTruncated: wasTruncated(resBody, bodyLimit),
+              mocked: isMocked(config),
             },
             redactConfig
           );

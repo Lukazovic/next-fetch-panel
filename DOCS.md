@@ -592,6 +592,18 @@ v4 has a substantially different API from earlier versions:
 
 The settings `Dialog` is set to `z-10000` (overlay and popup) so it always renders above the `Sheet` (`z-50`) and the fixed panel container (`z-9998`) regardless of DOM order.
 
+### Why mock rules live in a cookie
+
+Mock rules are stored in the `__nfp_mocks` session cookie instead of in server memory:
+
+- **Multiple instances.** An in-memory store only exists in the process that received the rule. With several pods, a rule would apply to some requests and not others. The cookie travels with every request, so whichever instance handles it reads the same rules via `cookies()`, the same async-context mechanism that provides the session ID.
+- **No write endpoint.** The panel writes the cookie directly, so the SSE route stays read-only.
+- **Isolation for free.** A cookie belongs to one browser, so rules never leak across sessions.
+
+The trade-off is size: browsers cap a cookie at about 4 KB, so `MOCKS_COOKIE_MAX_LENGTH` (3 800 characters, encoded) limits the total size of all rules. The cookie is client-controlled, so `parseMocks` validates every rule and drops invalid ones. Status codes are restricted to 200–599 because `new Response()` throws outside that range.
+
+For axios, the request interceptor (async only when `allowMocks` is set) swaps `config.adapter` for one that returns the mocked response. It mirrors axios's `settle()`: `validateStatus` decides between resolve and reject, and rejections are `AxiosError`-shaped (`isAxiosError: true`, `ERR_BAD_REQUEST` / `ERR_BAD_RESPONSE` / `ERR_NETWORK`) so app error handling treats them like real failures.
+
 ---
 
 ## Testing

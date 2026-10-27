@@ -8,6 +8,7 @@ vi.mock("next/headers", () => ({
 
 import { registerDevPanel } from "./fetch-patch";
 import { devLogStore } from "../store";
+import { MOCKS_COOKIE, serializeMocks, type MockRule } from "../domain";
 
 // Capture the real fetch before any test patches it
 const realFetch = globalThis.fetch;
@@ -345,5 +346,135 @@ describe("registerDevPanel — fetch logging", () => {
     expect(decoded).toContain("[REDACTED]");
     expect(decoded).not.toContain("supersecret");
     expect(decoded).toContain("page=2");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mocks
+// ---------------------------------------------------------------------------
+
+function setMocksCookie(rules: MockRule[]) {
+  vi.mocked(cookies).mockResolvedValue({
+    get: vi.fn((name: string) =>
+      name === MOCKS_COOKIE ? { value: serializeMocks(rules) } : undefined
+    ),
+  } as any);
+}
+
+const errorRule: MockRule = {
+  id: "r1",
+  method: "GET",
+  urlIncludes: "/users",
+  action: { type: "response", status: 503, body: '{"error":"unavailable"}' },
+};
+
+describe("registerDevPanel — mocks", () => {
+  it("returns the mock response without calling the real fetch", async () => {
+    const realFetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    setMocksCookie([errorRule]);
+    await registerDevPanel({ allowMocks: true });
+
+    const res = await globalThis.fetch("https://api.example.com/users");
+
+    expect(realFetchMock).not.toHaveBeenCalled();
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "unavailable" });
+    expect(res.headers.get("content-type")).toBe("application/json");
+  });
+
+  it("serves a non-JSON mock body as text/plain", async () => {
+    setMocksCookie([{ ...errorRule, action: { type: "response", status: 500, body: "boom" } }]);
+    await registerDevPanel({ allowMocks: true });
+
+    const res = await globalThis.fetch("https://api.example.com/users");
+
+    expect(await res.text()).toBe("boom");
+    expect(res.headers.get("content-type")).toBe("text/plain");
+  });
+
+  it("logs the mocked request with mocked: true", async () => {
+    setMocksCookie([errorRule]);
+    await registerDevPanel({ allowMocks: true });
+
+    await globalThis.fetch("https://api.example.com/users");
+
+    await vi.waitFor(() => expect(devLogStore.getBuffer()).toHaveLength(1));
+    const [entry] = devLogStore.getBuffer();
+    expect(entry.mocked).toBe(true);
+    expect(entry.status).toBe(503);
+    expect(JSON.parse(entry.responseBody!)).toEqual({ error: "unavailable" });
+  });
+
+  it("rejects with a TypeError for a network-error mock and logs it as mocked", async () => {
+    setMocksCookie([{ ...errorRule, action: { type: "network-error" } }]);
+    await registerDevPanel({ allowMocks: true });
+
+    await expect(globalThis.fetch("https://api.example.com/users")).rejects.toThrow(
+      new TypeError("fetch failed")
+    );
+
+    const [entry] = devLogStore.getBuffer();
+    expect(entry.mocked).toBe(true);
+    expect(entry.status).toBeNull();
+    expect(entry.error).toBe("fetch failed");
+  });
+
+  it("waits delayMs before responding", async () => {
+    vi.useFakeTimers();
+    try {
+      setMocksCookie([{ ...errorRule, delayMs: 2_000 }]);
+      await registerDevPanel({ allowMocks: true });
+
+      let settled = false;
+      const pending = globalThis.fetch("https://api.example.com/users").then(() => {
+        settled = true;
+      });
+
+      await vi.advanceTimersByTimeAsync(1_999);
+      expect(settled).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await pending;
+      expect(settled).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("calls the real fetch when no rule matches", async () => {
+    const realFetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    realFetchMock.mockResolvedValue(new Response("real", { status: 200 }));
+    setMocksCookie([errorRule]);
+    await registerDevPanel({ allowMocks: true });
+
+    const res = await globalThis.fetch("https://api.example.com/orders");
+
+    expect(realFetchMock).toHaveBeenCalledOnce();
+    expect(res.status).toBe(200);
+    await vi.waitFor(() => expect(devLogStore.getBuffer()).toHaveLength(1));
+    expect(devLogStore.getBuffer()[0].mocked).toBeUndefined();
+  });
+
+  it("ignores the mocks cookie when allowMocks is not set", async () => {
+    const realFetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    realFetchMock.mockResolvedValue(new Response("real", { status: 200 }));
+    setMocksCookie([errorRule]);
+    await registerDevPanel();
+
+    const res = await globalThis.fetch("https://api.example.com/users");
+
+    expect(realFetchMock).toHaveBeenCalledOnce();
+    expect(res.status).toBe(200);
+  });
+
+  it("calls the real fetch when cookies() throws (outside a request context)", async () => {
+    const realFetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    realFetchMock.mockResolvedValue(new Response("real", { status: 200 }));
+    vi.mocked(cookies).mockRejectedValue(new Error("no async storage"));
+    await registerDevPanel({ allowMocks: true });
+
+    const res = await globalThis.fetch("https://api.example.com/users");
+
+    expect(res.status).toBe(200);
   });
 });

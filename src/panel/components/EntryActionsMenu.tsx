@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, useState, useRef, useEffect } from "react";
-import { CheckIcon, CopyIcon, DownloadIcon, EllipsisIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, DownloadIcon, EllipsisIcon, FlaskConicalIcon } from "lucide-react";
 import { cn } from "../helpers/cn";
 import { PanelThemeContext } from "../PanelThemeContext";
 import { serializeEntry, toCurl, tryPrettyJson } from "../helpers/formatters";
@@ -19,9 +19,11 @@ import type { LogEntry } from "../../domain";
 
 type EntryActionsMenuProps = {
   entry: LogEntry;
+  /** When set, shows "Mock this request…" (mocks allowed). */
+  onMock?: (entry: LogEntry) => void;
 };
 
-export function EntryActionsMenu({ entry }: EntryActionsMenuProps) {
+export function EntryActionsMenu({ entry, onMock }: EntryActionsMenuProps) {
   const themeClass = useContext(PanelThemeContext);
   const [copied, setCopied] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -97,6 +99,15 @@ export function EntryActionsMenu({ entry }: EntryActionsMenuProps) {
           <DownloadIcon className="size-3 shrink-0" />
           Download full request data
         </DropdownMenuItem>
+        {onMock && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onMock(entry)}>
+              <FlaskConicalIcon className="size-3 shrink-0" />
+              Mock this request…
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

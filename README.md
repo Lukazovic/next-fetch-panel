@@ -274,6 +274,45 @@ If your project makes server-side requests **only through axios** (no native `fe
 
 ---
 
+## Mocking responses
+
+For QA and local debugging, the panel can force the response of a server-side request: a status code with an optional body, a network error, and/or a delay. This makes error cases that are hard to reproduce testable on demand.
+
+> **Never allow mocks in production.** They let whoever controls the browser change the responses your server logic relies on (for example, making a payment API "succeed"). Enable them only in environments where that's acceptable, and gate them on a dedicated env var. `NODE_ENV` is not enough: QA environments usually run production builds.
+
+Mocks are off by default and need to be allowed on **both** sides:
+
+```ts
+// instrumentation.ts — native fetch
+await registerDevPanel({ allowMocks: process.env.NFP_ALLOW_MOCKS === "true" });
+
+// axios client (if you use the interceptors)
+createDevPanelAxiosInterceptors({ allowMocks: process.env.NFP_ALLOW_MOCKS === "true" });
+
+// app/layout.tsx — shows the mocks UI
+<DevNetworkPanel allowMocks={process.env.NFP_ALLOW_MOCKS === "true"} />
+```
+
+Then, in the panel:
+
+1. Open the `…` menu on a request and choose **Mock this request…**. The method and URL path are prefilled.
+2. Pick a status code (with an optional body) or **Network error**, optionally add a delay, and click **Add rule**.
+3. Reload the page. Matching requests now return the mocked response and show a **mock** badge in the panel.
+
+The **Mocks (n)** button in the panel header lists the active rules and removes them.
+
+How it behaves:
+
+- **Only your browser is affected.** Rules are stored in a session cookie (`__nfp_mocks`) and sent with your requests, so other users of the same environment get real responses. The cookie is cleared when the browser closes.
+- **Works with multiple instances.** Because the rules travel with each request, any server instance or pod that handles it applies them.
+- **A rule matches** when the method matches (`*` matches any) and the request URL contains the given text. The first matching rule wins.
+- **Network errors look real:** native fetch rejects with `TypeError: fetch failed`, and axios rejects with an `AxiosError` (`code: "ERR_NETWORK"`). Status codes outside 2xx reject in axios exactly like a real response would (`validateStatus` is respected).
+- **Only server-side requests are affected**, the same ones the panel captures. Requests made from the browser (client components) are not intercepted; use your browser's DevTools overrides for those.
+
+> **Keep bodies small.** All rules share one cookie, which browsers cap at about 4 KB. Mocks are meant for error payloads and short responses, not for replaying large success bodies. The panel refuses rules that don't fit.
+
+---
+
 ## Disabling per environment
 
 Every entry point accepts an `enabled` option (or prop) that defaults to `true`. Pass `false` to make that layer a complete no-op — no patching, no cookies, no SSE stream, no panel rendered.
@@ -307,6 +346,7 @@ You can use any condition — `NODE_ENV`, a custom env var, a feature flag, or a
 | Panel accessible to anyone      | Use the `guard` option on `createDevPanelRoute`.                                                      |
 | Secrets leaking to the browser  | Configured patterns are replaced with `[REDACTED]` before entries reach the store.                    |
 | Running in production           | Pass `enabled: process.env.NODE_ENV !== "production"` to each entry point.                            |
+| Mocked responses                | Off by default. Enable only in dev/QA through a dedicated env var — never in production.              |
 
 ---
 

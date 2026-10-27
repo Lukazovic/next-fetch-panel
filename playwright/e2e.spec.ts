@@ -334,3 +334,49 @@ test("drag-resize changes the panel height and persists after reload", async ({ 
   );
   expect(heightAfterReload).toBe(heightAfterDrag);
 });
+
+// ---------------------------------------------------------------------------
+// Mocks — a rule created in the panel changes the server-side response
+// ---------------------------------------------------------------------------
+
+test("a rule created in the panel forces the server-side response for that session only", async ({
+  browser,
+}) => {
+  const ctxQa = await browser.newContext();
+  const ctxOther = await browser.newContext();
+  const qa = await ctxQa.newPage();
+  const other = await ctxOther.newPage();
+
+  await qa.goto("http://localhost:3000/posts");
+  await openPanel(qa);
+  await waitForEntry(qa, "jsonplaceholder.typicode.com/posts");
+
+  await entryRows(qa, "jsonplaceholder.typicode.com/posts").first().getByTitle("Actions").click();
+  await qa.getByText("Mock this request…").click();
+
+  const dialog = qa.getByRole("dialog");
+  await expect(dialog.getByLabel("URL contains")).toHaveValue("/posts");
+  await dialog.getByLabel("Status").fill("200");
+  await dialog.getByLabel("Response body").fill('[{"id":1,"title":"Mocked post"}]');
+  await dialog.getByRole("button", { name: "Add rule" }).click();
+  await expect(dialog.getByText("GET /posts → 200")).toBeVisible();
+
+  // The page renders whatever the server-side fetch returned.
+  await qa.reload();
+  await expect(qa.getByRole("listitem").filter({ hasText: "Mocked post" })).toBeVisible();
+
+  await openPanel(qa);
+  await expect(
+    entryRows(qa, "jsonplaceholder.typicode.com/posts").getByTitle(
+      "Response returned by a mock rule"
+    )
+  ).not.toHaveCount(0, { timeout: 15_000 });
+
+  // Another session hitting the same page still gets the real response.
+  await other.goto("http://localhost:3000/posts");
+  await expect(other.getByRole("listitem").first()).toBeVisible();
+  await expect(other.getByText("Mocked post")).toHaveCount(0);
+
+  await ctxQa.close();
+  await ctxOther.close();
+});

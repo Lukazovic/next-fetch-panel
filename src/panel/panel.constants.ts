@@ -61,3 +61,4 @@ export const DURATION_SLOW_MS = 1_000;
 export const BYTES_PER_KB = 1_024;
 export const HTTP_REDIRECT_STATUS = 300;
 export const HTTP_ERROR_STATUS = 400;
+export const MOCK_DEFAULT_STATUS = 500;

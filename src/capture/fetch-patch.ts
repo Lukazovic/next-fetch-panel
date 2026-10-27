@@ -4,8 +4,12 @@ import {
   SESSION_COOKIE,
   SESSION_HEADER,
   DEV_NETWORK_ROUTE,
+  NETWORK_ERROR_MESSAGE,
+  findMock,
+  type MockRule,
 } from "../domain";
 import { normalizeHeaders, extractRequestBody } from "./helpers/http";
+import { buildMockResponse, delay, readMockRules } from "./helpers/mocks";
 
 // Cached references — imported once, called per-request to read from the current ALS context.
 let nextHeaders: (typeof import("next/headers"))["headers"] | null = null;
@@ -57,12 +61,20 @@ async function getSessionId(): Promise<string | null> {
  *
  *   // disable a category
  *   await registerDevPanel({ redact: { headers: [] } })
+ *
+ * Mocks (QA / dev only — see README "Mocking responses"):
+ *   await registerDevPanel({ allowMocks: process.env.NFP_ALLOW_MOCKS === "true" })
  */
 export async function registerDevPanel(options?: {
   redact?: RedactInput;
   enabled?: boolean;
   bodyLimit?: number;
   bufferSize?: number;
+  /**
+   * Lets the panel mock responses (status, body, network error, delay) for the
+   * current browser session. Off by default — never enable it in production.
+   */
+  allowMocks?: boolean;
 }) {
   if (options?.enabled === false) return;
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
@@ -99,10 +111,14 @@ export async function registerDevPanel(options?: {
 
       // Read session ID from the current request's async context before starting the timer.
       const sessionId = await getSessionId();
+      const mockRule = options?.allowMocks
+        ? findMock(await readMockRules(), method, url)
+        : undefined;
+      const mocked = mockRule ? true : undefined;
       const start = performance.now();
 
       try {
-        const response = await originalFetch(input, init);
+        const response = mockRule ? await applyMock(mockRule) : await originalFetch(input, init);
         const duration = Math.round(performance.now() - start);
 
         const responseHeaders: Record<string, string> = {};
@@ -134,6 +150,7 @@ export async function registerDevPanel(options?: {
                     requestBodyTruncated,
                     responseBodyTruncated: text.length > bodyLimit,
                     sessionId,
+                    mocked,
                   },
                   redactConfig
                 )
@@ -157,6 +174,7 @@ export async function registerDevPanel(options?: {
                     requestBodyTruncated,
                     responseBodyTruncated: false,
                     sessionId,
+                    mocked,
                   },
                   redactConfig
                 )
@@ -185,6 +203,7 @@ export async function registerDevPanel(options?: {
               requestBodyTruncated,
               responseBodyTruncated: false,
               sessionId,
+              mocked,
             },
             redactConfig
           )
@@ -194,6 +213,13 @@ export async function registerDevPanel(options?: {
     },
     { __nfp: true }
   );
+}
+
+async function applyMock(rule: MockRule): Promise<Response> {
+  await delay(rule.delayMs);
+  // Same error type and message undici throws for a real network failure.
+  if (rule.action.type === "network-error") throw new TypeError(NETWORK_ERROR_MESSAGE);
+  return buildMockResponse(rule.action);
 }
 
 // For the simple re-export case: export { register } from "./server-network-panel/patch"

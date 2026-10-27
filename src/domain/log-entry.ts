@@ -14,6 +14,8 @@ export type LogEntry = {
   requestBodyTruncated?: boolean;
   responseBodyTruncated?: boolean;
   sessionId: string | null;
+  /** True when the response was produced by a mock rule instead of the network. */
+  mocked?: boolean;
 };
 
 export const BUFFER_SIZE = 100;
