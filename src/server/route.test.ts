@@ -145,6 +145,59 @@ describe("createDevPanelRoute — SSE", () => {
     await reader.cancel();
   });
 
+  it("replays entries since the lastEventId query param when the header is absent", async () => {
+    devLogStore.push(makeEntry({ sessionId: "test-session", id: "entry-1" }));
+    devLogStore.push(makeEntry({ sessionId: "test-session", id: "entry-2" }));
+
+    const GET = createDevPanelRoute();
+    const response = await GET(new Request("https://app.com/api/dev-network?lastEventId=entry-1"));
+    const reader = response.body!.getReader();
+
+    await reader.read(); // ": connected"
+
+    const { value } = await reader.read();
+    const text = decoder.decode(value);
+    expect(text).toContain("entry-2");
+    expect(text).not.toContain("entry-1");
+
+    await reader.cancel();
+  });
+
+  it("prefers the Last-Event-ID header over the lastEventId query param", async () => {
+    devLogStore.push(makeEntry({ sessionId: "test-session", id: "entry-1" }));
+    devLogStore.push(makeEntry({ sessionId: "test-session", id: "entry-2" }));
+    devLogStore.push(makeEntry({ sessionId: "test-session", id: "entry-3" }));
+
+    const GET = createDevPanelRoute();
+    const request = new Request("https://app.com/api/dev-network?lastEventId=entry-1", {
+      headers: { "last-event-id": "entry-2" },
+    });
+    const response = await GET(request);
+    const reader = response.body!.getReader();
+
+    await reader.read(); // ": connected"
+
+    const { value } = await reader.read();
+    expect(decoder.decode(value)).toContain("entry-3");
+
+    await reader.cancel();
+  });
+
+  it("sends a ': ping' heartbeat every 5 seconds", async () => {
+    const GET = createDevPanelRoute();
+    const response = await GET(new Request("https://app.com/api/dev-network"));
+    const reader = response.body!.getReader();
+
+    await reader.read(); // ": connected"
+
+    vi.advanceTimersByTime(5_000);
+
+    const { value } = await reader.read();
+    expect(decoder.decode(value)).toBe(": ping\n\n");
+
+    await reader.cancel();
+  });
+
   it("calls unsubscribe when the stream is cancelled", async () => {
     const unsubSpy = vi.fn();
     vi.spyOn(devLogStore, "subscribe").mockReturnValue(unsubSpy);

@@ -504,6 +504,29 @@ describe("DevNetworkPanel — SSE reconnect", () => {
       vi.useRealTimers();
     }
   });
+
+  it("passes the last received entry id as lastEventId when reconnecting manually", () => {
+    vi.useFakeTimers();
+    try {
+      renderPanel();
+
+      pushEntry(makeEntry({ id: "entry-1" }));
+      pushEntry(makeEntry({ id: "entry/2" }));
+
+      const first = eventSourceInstances[0];
+      act(() => {
+        first.readyState = MockEventSource.CLOSED;
+        first.onerror?.(new Event("error"));
+      });
+
+      act(() => vi.advanceTimersByTime(1_000));
+
+      expect(eventSourceInstances).toHaveLength(2);
+      expect(eventSourceInstances[1].url).toBe("/api/dev-network?lastEventId=entry%2F2");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

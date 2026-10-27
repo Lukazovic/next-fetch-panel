@@ -2,7 +2,7 @@ import { cookies, headers } from "next/headers";
 import { devLogStore } from "../store";
 import { SESSION_COOKIE, SESSION_HEADER } from "../domain";
 
-const SSE_HEARTBEAT_MS = 8_000;
+const SSE_HEARTBEAT_MS = 5_000;
 
 export const dynamic = "force-dynamic";
 
@@ -38,8 +38,11 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
       (await headers()).get(SESSION_HEADER) ?? (await cookies()).get(SESSION_COOKIE)?.value ?? null;
 
     // On reconnect the browser sends Last-Event-ID with the last received entry id.
-    // Use it to replay only entries the client hasn't seen yet.
-    const lastEventId = request.headers.get("last-event-id");
+    // A new EventSource created by the client after a fatal error can't set that header,
+    // so it passes the id as ?lastEventId= instead. The header wins: it is newer when the
+    // browser auto-retries a connection that was itself opened with the query param.
+    const lastEventId =
+      request.headers.get("last-event-id") ?? new URL(request.url).searchParams.get("lastEventId");
 
     let unsubscribe: (() => void) | undefined;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
@@ -70,8 +73,8 @@ export function createDevPanelRoute(options?: { guard?: GuardFn; enabled?: boole
           if (sessionId && entry.sessionId === sessionId) controller.enqueue(encodeEntry(entry));
         }
 
-        // SSE comment sent every 8 s — keeps proxies and load balancers from closing
-        // idle connections. 8 s is below common proxy idle timeouts (~10 s for Varnish).
+        // SSE comment sent every 5 s — keeps proxies and load balancers from closing
+        // idle connections. 5 s leaves margin below common proxy idle timeouts (~10 s for Varnish).
         heartbeat = setInterval(() => {
           try {
             controller.enqueue(encoder.encode(": ping\n\n"));

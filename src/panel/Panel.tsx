@@ -90,11 +90,17 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
     let current: EventSource | null = null;
     let retryTimeout: ReturnType<typeof setTimeout> | undefined;
     let retryDelay = SSE_RETRY_INITIAL_MS;
+    let lastEventId: string | null = null;
     let destroyed = false;
 
     function connect() {
       if (destroyed) return;
-      const es = new EventSource(DEV_NETWORK_ROUTE);
+      // A new EventSource doesn't carry Last-Event-ID over, so pass it explicitly
+      // to avoid the server replaying the whole session buffer.
+      const url = lastEventId
+        ? `${DEV_NETWORK_ROUTE}?lastEventId=${encodeURIComponent(lastEventId)}`
+        : DEV_NETWORK_ROUTE;
+      const es = new EventSource(url);
       current = es;
 
       es.onopen = () => {
@@ -104,6 +110,7 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
       es.onmessage = (event) => {
         try {
           const entry: LogEntry = JSON.parse(event.data);
+          lastEventId = entry.id;
           if (entry.timestamp <= clearedAtRef.current) return;
           if (seenIdsRef.current.has(entry.id)) return;
           seenIdsRef.current.add(entry.id);
