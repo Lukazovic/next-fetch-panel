@@ -7,7 +7,7 @@ import React from "react";
 
 import DevNetworkPanel from "./Panel";
 import { panelState } from "../store";
-import type { LogEntry } from "../domain";
+import { MOCKS_COOKIE, parseMocks, serializeMocks, type LogEntry, type MockRule } from "../domain";
 
 // ---------------------------------------------------------------------------
 // EventSource mock
@@ -551,5 +551,150 @@ describe("DevNetworkPanel — truncation warning", () => {
     await waitFor(() => {
       expect(screen.getByText("Request body truncated")).toBeInTheDocument();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Mocks (forcing responses)
+// ---------------------------------------------------------------------------
+
+function readMocksCookie(): MockRule[] {
+  const prefix = `${MOCKS_COOKIE}=`;
+  const raw = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith(prefix))
+    ?.slice(prefix.length);
+  return parseMocks(raw);
+}
+
+function writeMocksCookie(rules: MockRule[]) {
+  document.cookie = `${MOCKS_COOKIE}=${serializeMocks(rules)}; path=/`;
+}
+
+async function openMockDialogFor(entry: LogEntry) {
+  pushEntry(entry);
+  await userEvent.click(screen.getByTitle("Actions"));
+  await userEvent.click(await screen.findByText("Mock this request…"));
+  return screen.findByRole("dialog");
+}
+
+describe("DevNetworkPanel — mocks", () => {
+  beforeEach(() => {
+    document.cookie = `${MOCKS_COOKIE}=; path=/; max-age=0`;
+  });
+
+  it("hides mock controls when the allowMocks prop is not set", async () => {
+    renderPanel();
+    openPanel();
+    pushEntry(makeEntry());
+
+    await userEvent.click(screen.getByTitle("Actions"));
+    await screen.findByText("Copy as cURL");
+
+    expect(screen.queryByText("Mock this request…")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Mocks/ })).toBeNull();
+  });
+
+  it("prefills the rule from the entry and saves it to the cookie", async () => {
+    renderPanel({ allowMocks: true });
+    openPanel();
+    const dialog = await openMockDialogFor(
+      makeEntry({ method: "POST", url: "https://api.example.com/users?page=2" })
+    );
+
+    expect(within(dialog).getByLabelText("Method")).toHaveValue("POST");
+    expect(within(dialog).getByLabelText("URL contains")).toHaveValue("/users");
+    expect(within(dialog).getByLabelText("Status")).toHaveValue(500);
+
+    fireEvent.change(within(dialog).getByLabelText("Status"), { target: { value: "503" } });
+    fireEvent.change(within(dialog).getByLabelText("Response body"), {
+      target: { value: '{"error":"unavailable"}' },
+    });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Add rule" }));
+
+    expect(readMocksCookie()).toEqual([
+      {
+        id: expect.any(String),
+        method: "POST",
+        urlIncludes: "/users",
+        action: { type: "response", status: 503, body: '{"error":"unavailable"}' },
+      },
+    ]);
+    expect(within(dialog).getByText("POST /users → 503")).toBeInTheDocument();
+  });
+
+  it("creates a network-error rule with a delay", async () => {
+    renderPanel({ allowMocks: true });
+    openPanel();
+    const dialog = await openMockDialogFor(makeEntry());
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Network error" }));
+    fireEvent.change(within(dialog).getByLabelText("Delay (ms)"), { target: { value: "2000" } });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Add rule" }));
+
+    expect(readMocksCookie()).toEqual([
+      {
+        id: expect.any(String),
+        method: "GET",
+        urlIncludes: "/users",
+        delayMs: 2000,
+        action: { type: "network-error" },
+      },
+    ]);
+    expect(within(dialog).getByText("GET /users → network error (+2000ms)")).toBeInTheDocument();
+  });
+
+  it("disables Add rule for a status outside 200–599", async () => {
+    renderPanel({ allowMocks: true });
+    openPanel();
+    const dialog = await openMockDialogFor(makeEntry());
+
+    fireEvent.change(within(dialog).getByLabelText("Status"), { target: { value: "99" } });
+
+    expect(within(dialog).getByRole("button", { name: "Add rule" })).toBeDisabled();
+  });
+
+  it("shows an error and keeps the cookie unchanged when rules exceed the cookie size", async () => {
+    renderPanel({ allowMocks: true });
+    openPanel();
+    const dialog = await openMockDialogFor(makeEntry());
+
+    fireEvent.change(within(dialog).getByLabelText("Response body"), {
+      target: { value: "x".repeat(5_000) },
+    });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Add rule" }));
+
+    expect(within(dialog).getByText(/too large/i)).toBeInTheDocument();
+    expect(readMocksCookie()).toEqual([]);
+  });
+
+  it("lists rules already in the cookie and removes them", async () => {
+    writeMocksCookie([
+      {
+        id: "r1",
+        method: "GET",
+        urlIncludes: "/orders",
+        action: { type: "response", status: 404 },
+      },
+    ]);
+    renderPanel({ allowMocks: true });
+    openPanel();
+
+    await userEvent.click(screen.getByRole("button", { name: "Mocks (1)" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("GET /orders → 404")).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Remove rule" }));
+
+    expect(readMocksCookie()).toEqual([]);
+    expect(within(dialog).getByText("No active rules")).toBeInTheDocument();
+  });
+
+  it("marks mocked entries in the request list", async () => {
+    renderPanel({ allowMocks: true });
+    openPanel();
+    pushEntry(makeEntry({ mocked: true, status: 503 }));
+
+    expect(await screen.findByTitle("Response returned by a mock rule")).toBeInTheDocument();
   });
 });

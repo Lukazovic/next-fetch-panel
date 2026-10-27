@@ -8,6 +8,7 @@ vi.mock("next/headers", () => ({
 
 import { createDevPanelAxiosInterceptors } from "./axios-interceptor";
 import { devLogStore } from "../store";
+import { MOCKS_COOKIE, serializeMocks, type MockRule } from "../domain";
 
 function makeConfig(url: string, method = "get", extra: Record<string, unknown> = {}) {
   return { url, method, headers: {}, data: null, ...extra };
@@ -242,5 +243,186 @@ describe("createDevPanelAxiosInterceptors — error logging", () => {
     await expect(error(axiosError)).rejects.toBeDefined();
 
     expect(devLogStore.getBuffer()).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mocks
+// ---------------------------------------------------------------------------
+
+type MockAdapter = (config: object) => Promise<Record<string, unknown>>;
+
+function setMocksCookie(rules: MockRule[]) {
+  vi.mocked(cookies).mockResolvedValue({
+    get: vi.fn((name: string) =>
+      name === MOCKS_COOKIE ? { value: serializeMocks(rules) } : undefined
+    ),
+  } as any);
+}
+
+const errorRule: MockRule = {
+  id: "r1",
+  method: "GET",
+  urlIncludes: "/users",
+  action: { type: "response", status: 503, body: '{"error":"unavailable"}' },
+};
+
+// axios's default: only 2xx resolves.
+function validateStatus(status: number) {
+  return status >= 200 && status < 300;
+}
+
+describe("createDevPanelAxiosInterceptors — mocks", () => {
+  it("sets a mock adapter on configs that match a rule", async () => {
+    setMocksCookie([errorRule]);
+    const { request } = createDevPanelAxiosInterceptors({ allowMocks: true });
+
+    const config = await request(makeConfig("https://api.example.com/users"));
+
+    expect(typeof (config as Record<string, unknown>).adapter).toBe("function");
+  });
+
+  it("leaves configs that match no rule untouched", async () => {
+    setMocksCookie([errorRule]);
+    const { request } = createDevPanelAxiosInterceptors({ allowMocks: true });
+
+    const config = await request(makeConfig("https://api.example.com/orders"));
+
+    expect((config as Record<string, unknown>).adapter).toBeUndefined();
+  });
+
+  it("does not read the mocks cookie when allowMocks is not set", async () => {
+    setMocksCookie([errorRule]);
+    const { request } = createDevPanelAxiosInterceptors();
+
+    const config = request(makeConfig("https://api.example.com/users"));
+
+    expect((config as Record<string, unknown>).adapter).toBeUndefined();
+  });
+
+  it("mock adapter rejects with an AxiosError-like error when validateStatus fails", async () => {
+    setMocksCookie([errorRule]);
+    const { request } = createDevPanelAxiosInterceptors({ allowMocks: true });
+    const config = await request(
+      makeConfig("https://api.example.com/users", "get", { validateStatus })
+    );
+    const adapter = (config as Record<string, unknown>).adapter as MockAdapter;
+
+    await expect(adapter(config)).rejects.toMatchObject({
+      isAxiosError: true,
+      code: "ERR_BAD_RESPONSE",
+      message: "Request failed with status code 503",
+      config,
+      response: {
+        status: 503,
+        data: '{"error":"unavailable"}',
+        headers: { "content-type": "application/json" },
+      },
+    });
+  });
+
+  it("uses ERR_BAD_REQUEST for 4xx statuses", async () => {
+    setMocksCookie([{ ...errorRule, action: { type: "response", status: 404 } }]);
+    const { request } = createDevPanelAxiosInterceptors({ allowMocks: true });
+    const config = await request(
+      makeConfig("https://api.example.com/users", "get", { validateStatus })
+    );
+    const adapter = (config as Record<string, unknown>).adapter as MockAdapter;
+
+    await expect(adapter(config)).rejects.toMatchObject({ code: "ERR_BAD_REQUEST" });
+  });
+
+  it("mock adapter resolves when validateStatus accepts the status", async () => {
+    setMocksCookie([
+      { ...errorRule, action: { type: "response", status: 200, body: '{"ok":true}' } },
+    ]);
+    const { request } = createDevPanelAxiosInterceptors({ allowMocks: true });
+    const config = await request(
+      makeConfig("https://api.example.com/users", "get", { validateStatus })
+    );
+    const adapter = (config as Record<string, unknown>).adapter as MockAdapter;
+
+    await expect(adapter(config)).resolves.toMatchObject({
+      status: 200,
+      data: '{"ok":true}',
+      config,
+    });
+  });
+
+  it("mock adapter rejects with ERR_NETWORK and no response for a network-error rule", async () => {
+    setMocksCookie([{ ...errorRule, action: { type: "network-error" } }]);
+    const { request } = createDevPanelAxiosInterceptors({ allowMocks: true });
+    const config = await request(makeConfig("https://api.example.com/users"));
+    const adapter = (config as Record<string, unknown>).adapter as MockAdapter;
+
+    const err = await adapter(config).catch((e: unknown) => e);
+    expect(err).toMatchObject({
+      isAxiosError: true,
+      code: "ERR_NETWORK",
+      message: "Network Error",
+    });
+    expect((err as Record<string, unknown>).response).toBeUndefined();
+  });
+
+  it("logs a mocked error response with mocked: true", async () => {
+    setMocksCookie([errorRule]);
+    const { request, error } = createDevPanelAxiosInterceptors({ allowMocks: true });
+    const config = await request(
+      makeConfig("https://api.example.com/users", "get", { validateStatus })
+    );
+    const adapter = (config as Record<string, unknown>).adapter as MockAdapter;
+
+    const err = await adapter(config).catch((e: unknown) => e);
+    await expect(error(err)).rejects.toBe(err);
+
+    const [entry] = devLogStore.getBuffer();
+    expect(entry.mocked).toBe(true);
+    expect(entry.status).toBe(503);
+  });
+
+  it("logs a mocked success response with mocked: true", async () => {
+    setMocksCookie([{ ...errorRule, action: { type: "response", status: 200 } }]);
+    const { request, response } = createDevPanelAxiosInterceptors({ allowMocks: true });
+    const config = await request(makeConfig("https://api.example.com/users"));
+    const adapter = (config as Record<string, unknown>).adapter as MockAdapter;
+
+    await response(await adapter(config));
+
+    const [entry] = devLogStore.getBuffer();
+    expect(entry.mocked).toBe(true);
+    expect(entry.status).toBe(200);
+  });
+
+  it("does not mark real responses as mocked", async () => {
+    setMocksCookie([errorRule]);
+    const { request, response } = createDevPanelAxiosInterceptors({ allowMocks: true });
+    const config = await request(makeConfig("https://api.example.com/orders"));
+
+    await response(makeAxiosResponse(config));
+
+    expect(devLogStore.getBuffer()[0].mocked).toBeUndefined();
+  });
+
+  it("waits delayMs before the mock adapter settles", async () => {
+    vi.useFakeTimers();
+    try {
+      setMocksCookie([{ ...errorRule, delayMs: 1_000, action: { type: "response", status: 200 } }]);
+      const { request } = createDevPanelAxiosInterceptors({ allowMocks: true });
+      const config = await request(makeConfig("https://api.example.com/users"));
+      const adapter = (config as Record<string, unknown>).adapter as MockAdapter;
+
+      let settled = false;
+      const pending = adapter(config).then(() => {
+        settled = true;
+      });
+
+      await vi.advanceTimersByTimeAsync(999);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      await pending;
+      expect(settled).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

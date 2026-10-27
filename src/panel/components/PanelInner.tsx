@@ -23,6 +23,12 @@ type PanelInnerProps = {
   bottomRef: React.RefObject<HTMLDivElement | null>;
   detailSize: number;
   onDetailSizeChange: (size: number) => void;
+  /** Present only when mocks are allowed. */
+  mocks?: {
+    count: number;
+    onOpen: () => void;
+    onMockEntry: (entry: LogEntry) => void;
+  };
 };
 
 export function PanelInner({
@@ -35,6 +41,7 @@ export function PanelInner({
   bottomRef,
   detailSize,
   onDetailSizeChange,
+  mocks,
 }: PanelInnerProps) {
   const [filter, setFilter] = useState("");
   const filteredEntries = filter
@@ -87,6 +94,16 @@ export function PanelInner({
           )}
         </span>
         <div className="flex items-center gap-1">
+          {mocks && (
+            <Button
+              variant="ghost"
+              size="xs"
+              className={mocks.count > 0 ? "text-orange-400" : "text-muted-foreground"}
+              onClick={mocks.onOpen}
+            >
+              Mocks ({mocks.count})
+            </Button>
+          )}
           <Button
             aria-label="Settings"
             variant="ghost"
@@ -201,6 +218,14 @@ export function PanelInner({
                           >
                             {entry.status ?? "ERR"}
                           </span>
+                          {entry.mocked && (
+                            <span
+                              title="Response returned by a mock rule"
+                              className="ml-1 rounded bg-orange-400/15 px-1 text-[9px] font-semibold uppercase text-orange-400"
+                            >
+                              mock
+                            </span>
+                          )}
                         </td>
                         <td className="px-2.5 py-1.25 max-w-50 overflow-hidden text-ellipsis whitespace-nowrap text-foreground/80">
                           {entry.url}
@@ -212,7 +237,7 @@ export function PanelInner({
                           className="px-2 py-1.25 whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <EntryActionsMenu entry={entry} />
+                          <EntryActionsMenu entry={entry} onMock={mocks?.onMockEntry} />
                         </td>
                       </tr>
                     );

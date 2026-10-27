@@ -14,6 +14,7 @@ import {
   SESSION_COOKIE,
   DEV_NETWORK_ROUTE,
   SESSION_COOKIE_MAX_AGE,
+  ANY_METHOD,
 } from "../domain";
 
 import {
@@ -26,6 +27,7 @@ import {
   buildThemeClass,
   SSE_RETRY_INITIAL_MS,
   SSE_RETRY_MAX_MS,
+  MOCK_DEFAULT_STATUS,
 } from "./panel.constants";
 
 import { usePanelConfig } from "./hooks/usePanelConfig";
@@ -34,6 +36,8 @@ import { useClearedAt } from "./hooks/useClearedAt";
 import { PanelThemeContext } from "./PanelThemeContext";
 import { SheetResizeHandle, FixedResizeHandle } from "./components/ResizeHandles";
 import { SettingsDialog } from "./components/SettingsDialog";
+import { MocksDialog, type MockDraft } from "./components/MocksDialog";
+import { useMocks } from "./hooks/useMocks";
 import { PanelInner } from "./components/PanelInner";
 
 function noopSubscribe() {
@@ -53,9 +57,31 @@ type PanelProps = {
   showToggleButton: boolean;
   buttonPosition: ButtonPosition;
   bufferSize: number;
+  allowMocks: boolean;
 };
 
-function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
+type MocksDialogState = { open: boolean; draft: MockDraft; key: number };
+
+const EMPTY_DRAFT: MockDraft = {
+  method: ANY_METHOD,
+  urlIncludes: "",
+  kind: "response",
+  status: String(MOCK_DEFAULT_STATUS),
+  body: "",
+  delayMs: "",
+};
+
+function draftFromEntry(entry: LogEntry): MockDraft {
+  let urlIncludes = entry.url;
+  try {
+    urlIncludes = new URL(entry.url).pathname;
+  } catch {
+    /* keep the full URL */
+  }
+  return { ...EMPTY_DRAFT, method: entry.method, urlIncludes };
+}
+
+function Panel({ showToggleButton, buttonPosition, bufferSize, allowMocks }: PanelProps) {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const open = useSyncExternalStore(
     panelState.subscribe,
@@ -64,6 +90,13 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
   );
   const [selected, setSelected] = useState<LogEntry | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const mockRules = useMocks();
+  // `key` remounts the dialog so each open starts from a fresh draft.
+  const [mocksDialog, setMocksDialog] = useState<MocksDialogState>({
+    open: false,
+    draft: EMPTY_DRAFT,
+    key: 0,
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
   const fixedPanelRef = useRef<HTMLDivElement>(null);
   const { clearedAtRef, persistClearedAt } = useClearedAt();
@@ -176,7 +209,18 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
     bottomRef,
     detailSize: config.detailSize,
     onDetailSizeChange: (size: number) => update({ detailSize: size }),
+    mocks: allowMocks
+      ? {
+          count: mockRules.rules.length,
+          onOpen: () => openMocksDialog(EMPTY_DRAFT),
+          onMockEntry: (entry: LogEntry) => openMocksDialog(draftFromEntry(entry)),
+        }
+      : undefined,
   };
+
+  function openMocksDialog(draft: MockDraft) {
+    setMocksDialog((s) => ({ open: true, draft, key: s.key + 1 }));
+  }
 
   const isHorizontal = config.sheetSide === "bottom" || config.sheetSide === "top";
   const sheetSize = isHorizontal
@@ -211,6 +255,19 @@ function Panel({ showToggleButton, buttonPosition, bufferSize }: PanelProps) {
         onOpenChange={setSettingsOpen}
         theme={theme}
       />
+
+      {allowMocks && (
+        <MocksDialog
+          key={mocksDialog.key}
+          open={mocksDialog.open}
+          onOpenChange={(open) => setMocksDialog((s) => ({ ...s, open }))}
+          themeClass={themeClass}
+          rules={mockRules.rules}
+          initialDraft={mocksDialog.draft}
+          onAdd={mockRules.addRule}
+          onRemove={mockRules.removeRule}
+        />
+      )}
 
       {config.mode === "sheet" && (
         <Sheet open={open} onOpenChange={handleSheetOpenChange} modal={config.sheetModal}>
@@ -331,11 +388,17 @@ export default function DevNetworkPanel({
   showToggleButton = true,
   buttonPosition = "bottom-right",
   bufferSize = BUFFER_SIZE,
+  allowMocks = false,
 }: {
   enabled?: boolean;
   showToggleButton?: boolean;
   buttonPosition?: ButtonPosition;
   bufferSize?: number;
+  /**
+   * Shows the UI to mock responses. The server must also allow mocks
+   * (registerDevPanel / createDevPanelAxiosInterceptors) for rules to take effect.
+   */
+  allowMocks?: boolean;
 }) {
   const mounted = useSyncExternalStore(noopSubscribe, getClientMounted, getServerMounted);
   if (!enabled || !mounted) return null;
@@ -344,6 +407,7 @@ export default function DevNetworkPanel({
       showToggleButton={showToggleButton}
       buttonPosition={buttonPosition}
       bufferSize={bufferSize}
+      allowMocks={allowMocks}
     />,
     document.body
   );
