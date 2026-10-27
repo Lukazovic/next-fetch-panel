@@ -32,6 +32,8 @@ npm run build && npm run test:e2e # E2E tests (Playwright)
 
 **A PR is not ready if tests are failing or `npm run typecheck` reports errors.**
 
+To try a change in a real Next.js app, see [LOCAL-TESTING.md](LOCAL-TESTING.md).
+
 ## Test layers
 
 | Layer       | Runner       | When to add                                     |

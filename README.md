@@ -393,6 +393,8 @@ npm run format            # Prettier (write)
 
 E2E tests run against `fixtures/nextjs-app/`, a self-contained Next.js app wired to the local build via `"next-fetch-panel": "file:../.."`. Build the library first (`npm run build`) to ensure `dist/` is current; use `npm run dev` for watch mode during development.
 
+To try your changes in a real Next.js app before publishing, see [LOCAL-TESTING.md](LOCAL-TESTING.md).
+
 A pre-commit hook (husky + lint-staged) runs ESLint and Prettier automatically on staged files. CI enforces lint, format, typecheck, unit tests, and E2E tests in parallel jobs.
 
 ---
