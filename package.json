@@ -65,6 +65,7 @@
   "scripts": {
     "build:css": "tailwindcss -i src/panel/panel.css -o src/panel/panel.styles.tmp.css --minify && node scripts/build-css.mjs",
     "build": "npm run build:css && tsup",
+    "prepublishOnly": "npm run build",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src playwright.config.ts eslint.config.js",
