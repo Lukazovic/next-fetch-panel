@@ -8,6 +8,7 @@ import {
   formatBytes,
   tryPrettyJson,
   toCurl,
+  serializeEntry,
 } from "./formatters";
 
 // ---------------------------------------------------------------------------
@@ -216,5 +217,45 @@ describe("toCurl", () => {
   it("escapes single quotes in header values", () => {
     const curl = toCurl(makeEntry({ requestHeaders: { "x-name": "it's here" } }));
     expect(curl).toContain("-H 'x-name: it'\\''s here'");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// serializeEntry
+// ---------------------------------------------------------------------------
+
+describe("serializeEntry", () => {
+  it("nests JSON bodies as objects instead of escaped strings", () => {
+    const text = serializeEntry(
+      makeEntry({ requestBody: '{"name":"Ana"}', responseBody: '[{"id":1}]' })
+    );
+    const parsed = JSON.parse(text);
+    expect(parsed.requestBody).toEqual({ name: "Ana" });
+    expect(parsed.responseBody).toEqual([{ id: 1 }]);
+    expect(text).not.toContain('\\"');
+  });
+
+  it("keeps non-JSON bodies as strings", () => {
+    const parsed = JSON.parse(serializeEntry(makeEntry({ responseBody: "<html></html>" })));
+    expect(parsed.responseBody).toBe("<html></html>");
+  });
+
+  it("keeps bodies that look like JSON but fail to parse (e.g. truncated) as strings", () => {
+    const parsed = JSON.parse(serializeEntry(makeEntry({ responseBody: '{"a":1, "b"' })));
+    expect(parsed.responseBody).toBe('{"a":1, "b"');
+  });
+
+  it("keeps scalar-looking bodies as strings instead of turning them into numbers", () => {
+    const parsed = JSON.parse(serializeEntry(makeEntry({ responseBody: "123" })));
+    expect(parsed.responseBody).toBe("123");
+  });
+
+  it("keeps null bodies as null and preserves the other fields", () => {
+    const entry = makeEntry();
+    expect(JSON.parse(serializeEntry(entry))).toEqual(entry);
+  });
+
+  it("indents the output with 2 spaces", () => {
+    expect(serializeEntry(makeEntry())).toContain('\n  "id": "test-id"');
   });
 });

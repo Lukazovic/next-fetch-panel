@@ -4,7 +4,7 @@ import { useContext, useState, useRef, useEffect } from "react";
 import { CheckIcon, CopyIcon, DownloadIcon, EllipsisIcon } from "lucide-react";
 import { cn } from "../helpers/cn";
 import { PanelThemeContext } from "../PanelThemeContext";
-import { toCurl } from "../helpers/formatters";
+import { serializeEntry, toCurl, tryPrettyJson } from "../helpers/formatters";
 import { downloadBody, downloadEntry } from "../helpers/downloads";
 import { BINARY_BODY } from "../../capture/helpers/http";
 import { COPY_FEEDBACK_MS } from "../panel.constants";
@@ -33,8 +33,11 @@ export function EntryActionsMenu({ entry }: EntryActionsMenuProps) {
     downloadName = new URL(entry.url).pathname.split("/").filter(Boolean).pop() || "entry";
   } catch {}
 
-  function handleCopyCurl() {
-    navigator.clipboard.writeText(toCurl(entry)).then(() => {
+  const hasResponseBody = Boolean(entry.responseBody);
+  const hasRequestBody = Boolean(entry.requestBody) && entry.requestBody !== BINARY_BODY;
+
+  function copy(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       clearTimeout(copiedTimerRef.current);
       copiedTimerRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
@@ -53,12 +56,28 @@ export function EntryActionsMenu({ entry }: EntryActionsMenuProps) {
         {copied ? <CheckIcon className="size-3.5" /> : <EllipsisIcon className="size-3.5" />}
       </DropdownMenuTrigger>
       <DropdownMenuContent data-nfp="" className={themeClass}>
-        <DropdownMenuItem onClick={handleCopyCurl}>
+        <DropdownMenuItem onClick={() => copy(toCurl(entry))}>
           <CopyIcon className="size-3 shrink-0" />
           Copy as cURL
         </DropdownMenuItem>
+        {hasResponseBody && (
+          <DropdownMenuItem onClick={() => copy(tryPrettyJson(entry.responseBody!))}>
+            <CopyIcon className="size-3 shrink-0" />
+            Copy response body
+          </DropdownMenuItem>
+        )}
+        {hasRequestBody && (
+          <DropdownMenuItem onClick={() => copy(tryPrettyJson(entry.requestBody!))}>
+            <CopyIcon className="size-3 shrink-0" />
+            Copy request body
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={() => copy(serializeEntry(entry))}>
+          <CopyIcon className="size-3 shrink-0" />
+          Copy full request data
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {entry.responseBody && (
+        {hasResponseBody && (
           <DropdownMenuItem
             onClick={() => downloadBody(entry.responseBody!, `${downloadName}-response`)}
           >
@@ -66,7 +85,7 @@ export function EntryActionsMenu({ entry }: EntryActionsMenuProps) {
             Download response body
           </DropdownMenuItem>
         )}
-        {entry.requestBody && entry.requestBody !== BINARY_BODY && (
+        {hasRequestBody && (
           <DropdownMenuItem
             onClick={() => downloadBody(entry.requestBody!, `${downloadName}-request`)}
           >

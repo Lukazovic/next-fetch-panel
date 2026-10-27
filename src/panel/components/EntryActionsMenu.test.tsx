@@ -134,6 +134,57 @@ describe("EntryActionsMenu", () => {
     expect(screen.queryByText("Download response body")).toBeNull();
   });
 
+  it('"Copy response body" copies the pretty-printed JSON response body', async () => {
+    const user = renderMenu(makeEntry({ responseBody: '{"ok":true}' }));
+    await user.click(screen.getByTitle("Actions"));
+    await user.click(await screen.findByText("Copy response body"));
+    expect(vi.mocked(navigator.clipboard.writeText)).toHaveBeenCalledWith('{\n  "ok": true\n}');
+  });
+
+  it('"Copy response body" copies a non-JSON body as-is', async () => {
+    const user = renderMenu(makeEntry({ responseBody: "plain text" }));
+    await user.click(screen.getByTitle("Actions"));
+    await user.click(await screen.findByText("Copy response body"));
+    expect(vi.mocked(navigator.clipboard.writeText)).toHaveBeenCalledWith("plain text");
+  });
+
+  it('"Copy response body" is hidden when responseBody is null', async () => {
+    const user = renderMenu(makeEntry({ responseBody: null }));
+    await user.click(screen.getByTitle("Actions"));
+    await screen.findByText("Copy as cURL");
+    expect(screen.queryByText("Copy response body")).toBeNull();
+  });
+
+  it('"Copy request body" copies the request body', async () => {
+    const user = renderMenu(makeEntry({ method: "POST", requestBody: '{"name":"a"}' }));
+    await user.click(screen.getByTitle("Actions"));
+    await user.click(await screen.findByText("Copy request body"));
+    expect(vi.mocked(navigator.clipboard.writeText)).toHaveBeenCalledWith('{\n  "name": "a"\n}');
+  });
+
+  it('"Copy request body" is hidden when requestBody is "[binary]"', async () => {
+    const user = renderMenu(makeEntry({ requestBody: "[binary]" }));
+    await user.click(screen.getByTitle("Actions"));
+    await screen.findByText("Copy as cURL");
+    expect(screen.queryByText("Copy request body")).toBeNull();
+  });
+
+  it('"Copy full request data" copies the entry with JSON bodies nested as objects', async () => {
+    const user = renderMenu(makeEntry({ responseBody: '{"ok":true}' }));
+    await user.click(screen.getByTitle("Actions"));
+    await user.click(await screen.findByText("Copy full request data"));
+    const [copied] = vi.mocked(navigator.clipboard.writeText).mock.calls[0];
+    expect(JSON.parse(copied)).toEqual({ ...makeEntry(), responseBody: { ok: true } });
+    expect(copied).toContain('\n  "id": "test-id"');
+  });
+
+  it("trigger turns green after copying a body", async () => {
+    const user = renderMenu(makeEntry({ responseBody: "plain text" }));
+    await user.click(screen.getByTitle("Actions"));
+    await user.click(await screen.findByText("Copy response body"));
+    expect(screen.getByTitle("Actions").className).toContain("text-green-500");
+  });
+
   it('"Download request body" is hidden when requestBody is "[binary]"', async () => {
     const user = renderMenu(makeEntry({ requestBody: "[binary]" }));
     await user.click(screen.getByTitle("Actions"));

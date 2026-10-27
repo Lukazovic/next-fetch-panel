@@ -57,6 +57,30 @@ describe("downloadBody", () => {
     expect(anchor.download).toBe("output.txt");
   });
 
+  it("pretty-prints JSON content", async () => {
+    let capturedBlob: Blob | null = null;
+    vi.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
+      capturedBlob = blob as Blob;
+      return "blob:captured";
+    });
+
+    downloadBody('{"key":"value"}', "response");
+
+    expect(await capturedBlob!.text()).toBe('{\n  "key": "value"\n}');
+  });
+
+  it("writes plain text content unchanged", async () => {
+    let capturedBlob: Blob | null = null;
+    vi.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
+      capturedBlob = blob as Blob;
+      return "blob:captured";
+    });
+
+    downloadBody("hello world", "output");
+
+    expect(await capturedBlob!.text()).toBe("hello world");
+  });
+
   it("calls URL.revokeObjectURL after the download to avoid memory leaks", () => {
     downloadBody("content", "file");
     expect(vi.mocked(URL.revokeObjectURL)).toHaveBeenCalledWith("blob:mock");
@@ -115,5 +139,18 @@ describe("downloadEntry", () => {
 
     const text = await capturedBlob!.text();
     expect(JSON.parse(text)).toEqual(entry);
+  });
+
+  it("nests JSON bodies as objects in the downloaded entry", async () => {
+    let capturedBlob: Blob | null = null;
+    vi.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
+      capturedBlob = blob as Blob;
+      return "blob:captured";
+    });
+
+    downloadEntry(makeEntry({ responseBody: '{"ok":true}' }));
+
+    const parsed = JSON.parse(await capturedBlob!.text());
+    expect(parsed.responseBody).toEqual({ ok: true });
   });
 });
