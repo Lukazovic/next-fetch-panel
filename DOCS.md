@@ -547,7 +547,7 @@ The solution: on clear, `Date.now()` is written to `localStorage` under `next-fe
 
 Proxies (nginx, GCP load balancers, Cloudflare, Varnish/Fastly) and serverless platforms close idle HTTP connections after a configurable timeout. When the SSE connection is idle (no server-side fetches to stream), the connection is silently dropped. The browser's `EventSource` detects the close and reconnects.
 
-The handler writes an SSE comment (`: ping\n\n`) every **8 seconds** via `setInterval`. This interval is intentionally short — Varnish and Fastly CDN commonly enforce idle timeouts around 10 seconds, so 8 s keeps the connection alive without requiring infrastructure changes. Browser `EventSource` implementations ignore SSE comments, so the ping has no effect on the client beyond keeping the TCP connection alive. The interval is cleared in the stream's `cancel()` callback to avoid a leak after the client disconnects.
+The handler writes an SSE comment (`: ping\n\n`) every **5 seconds** via `setInterval`. This interval is intentionally short — Varnish and Fastly CDN commonly enforce idle timeouts around 10 seconds, so 5 s keeps the connection alive without requiring infrastructure changes. Browser `EventSource` implementations ignore SSE comments, so the ping has no effect on the client beyond keeping the TCP connection alive. The interval is cleared in the stream's `cancel()` callback to avoid a leak after the client disconnects.
 
 When the connection does drop and the browser reconnects, `Last-Event-ID` prevents duplicate entries — see [Why buffer replay on SSE connect?](#why-buffer-replay-on-sse-connect).
 
