@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- **Axios mock delays now respect `timeout`** — a mock replaces the axios adapter, and axios enforces `timeout` inside its adapters, so a delayed mock used to resolve after the full delay even when it was longer than the request's `timeout`. If the delay is equal to or longer than `config.timeout`, the mock now rejects after `timeout` ms with the same error axios throws (`ECONNABORTED`, or `ETIMEDOUT` with `transitional.clarifyTimeoutError`; `timeoutErrorMessage` is respected). Delays shorter than the timeout, and requests without a timeout, behave as before.
+
 ## [0.7.0] — 2026-10-27
 
 ### Breaking
