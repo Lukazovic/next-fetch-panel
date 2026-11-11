@@ -9,6 +9,8 @@ type OptionButtonProps = {
 export function OptionButton({ active, onClick, children }: OptionButtonProps) {
   return (
     <button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
         "cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors border",

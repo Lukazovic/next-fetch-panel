@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Clearer Mocks dialog** — easier to see what is mocked and how to undo it:
+  - **Active mocks stay visible.** The list is pinned above the form instead of scrolling away with it, and shows the count.
+  - **Readable rules.** Each rule shows the method, the URL, the outcome colored by status (or "Network error") and the delay in seconds.
+  - **Labelled remove, with undo.** The icon-only `×` is now a **Remove** button (accessible name `Remove <rule>`). A removed rule can be restored with **Undo**.
+  - **Validation explains itself.** **Add rule** is no longer disabled. Clicking it with invalid fields shows an inline message on each field (`aria-invalid`), and editing a field clears its message.
+  - **Actions always reachable.** **Add rule** and **Close** live in a fixed footer, so long forms don't push them out of view.
+  - Fields are grouped into **Match** and **Response**. The delay hint shows the delay in seconds and notes that axios times out first when its `timeout` is shorter. A reminder to reload the page appears while rules are active.
+
 ### Fixed
 
 - **Axios mock delays now respect `timeout`** — a mock replaces the axios adapter, and axios enforces `timeout` inside its adapters, so a delayed mock used to resolve after the full delay even when it was longer than the request's `timeout`. If the delay is equal to or longer than `config.timeout`, the mock now rejects after `timeout` ms with the same error axios throws (`ECONNABORTED`, or `ETIMEDOUT` with `transitional.clarifyTimeoutError`; `timeoutErrorMessage` is respected). Delays shorter than the timeout, and requests without a timeout, behave as before.
