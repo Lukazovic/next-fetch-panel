@@ -307,6 +307,7 @@ How it behaves:
 - **Works with multiple instances.** Because the rules travel with each request, any server instance or pod that handles it applies them.
 - **A rule matches** when the method matches (`*` matches any) and the request URL contains the given text. The first matching rule wins.
 - **Network errors look real:** native fetch rejects with `TypeError: fetch failed`, and axios rejects with an `AxiosError` (`code: "ERR_NETWORK"`). Status codes outside 2xx reject in axios exactly like a real response would (`validateStatus` is respected).
+- **Delays respect the axios `timeout`.** If a rule's delay is equal to or longer than the request's `timeout`, the axios request rejects after `timeout` ms with axios's timeout error (`code: "ECONNABORTED"`, or `"ETIMEDOUT"` with `transitional.clarifyTimeoutError`; message `timeout of <n>ms exceeded`, or your `timeoutErrorMessage`). Use this to test how your app handles slow APIs. Native fetch has no timeout option; use an `AbortSignal.timeout()` signal there.
 - **Only server-side requests are affected**, the same ones the panel captures. Requests made from the browser (client components) are not intercepted; use your browser's DevTools overrides for those.
 
 > **Keep bodies small.** All rules share one cookie, which browsers cap at about 4 KB. Mocks are meant for error payloads and short responses, not for replaying large success bodies. The panel refuses rules that don't fit.

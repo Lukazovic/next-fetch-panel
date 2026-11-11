@@ -426,3 +426,138 @@ describe("createDevPanelAxiosInterceptors — mocks", () => {
     }
   });
 });
+
+describe("createDevPanelAxiosInterceptors — mock delay vs config.timeout", () => {
+  const okRule: MockRule = { ...errorRule, action: { type: "response", status: 200 } };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function mockedAdapterFor(rule: MockRule, extra: Record<string, unknown>) {
+    setMocksCookie([rule]);
+    const { request, error } = createDevPanelAxiosInterceptors({ allowMocks: true });
+    const config = await request(makeConfig("https://api.example.com/users", "get", extra));
+    const adapter = (config as Record<string, unknown>).adapter as MockAdapter;
+    return { config, adapter, error };
+  }
+
+  it("rejects with ECONNABORTED once config.timeout elapses when delayMs is longer", async () => {
+    const { config, adapter } = await mockedAdapterFor(
+      { ...okRule, delayMs: 10_000 },
+      { timeout: 8_000 }
+    );
+
+    let outcome: unknown = "pending";
+    const pending = adapter(config).then(
+      () => (outcome = "resolved"),
+      (e: unknown) => (outcome = e)
+    );
+
+    await vi.advanceTimersByTimeAsync(7_999);
+    expect(outcome).toBe("pending");
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+
+    expect(outcome).toMatchObject({
+      isAxiosError: true,
+      code: "ECONNABORTED",
+      message: "timeout of 8000ms exceeded",
+      config,
+    });
+    expect((outcome as Record<string, unknown>).response).toBeUndefined();
+  });
+
+  it("times out when delayMs equals config.timeout", async () => {
+    const { config, adapter } = await mockedAdapterFor(
+      { ...okRule, delayMs: 8_000 },
+      { timeout: 8_000 }
+    );
+
+    const pending = adapter(config).catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    await expect(pending).resolves.toMatchObject({ code: "ECONNABORTED" });
+  });
+
+  it("also times out a delayed network-error rule", async () => {
+    const { config, adapter } = await mockedAdapterFor(
+      { ...errorRule, delayMs: 10_000, action: { type: "network-error" } },
+      { timeout: 8_000 }
+    );
+
+    const pending = adapter(config).catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    await expect(pending).resolves.toMatchObject({ code: "ECONNABORTED" });
+  });
+
+  it("resolves with the mocked response when delayMs is shorter than config.timeout", async () => {
+    const { config, adapter } = await mockedAdapterFor(
+      { ...okRule, delayMs: 5_000 },
+      { timeout: 8_000 }
+    );
+
+    const pending = adapter(config);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    await expect(pending).resolves.toMatchObject({ status: 200, config });
+  });
+
+  it("ignores a timeout of 0, like axios", async () => {
+    const { config, adapter } = await mockedAdapterFor(
+      { ...okRule, delayMs: 10_000 },
+      { timeout: 0 }
+    );
+
+    const pending = adapter(config);
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    await expect(pending).resolves.toMatchObject({ status: 200 });
+  });
+
+  it("uses ETIMEDOUT when transitional.clarifyTimeoutError is set", async () => {
+    const { config, adapter } = await mockedAdapterFor(
+      { ...okRule, delayMs: 10_000 },
+      { timeout: 8_000, transitional: { clarifyTimeoutError: true } }
+    );
+
+    const pending = adapter(config).catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    await expect(pending).resolves.toMatchObject({ code: "ETIMEDOUT" });
+  });
+
+  it("uses config.timeoutErrorMessage when provided", async () => {
+    const { config, adapter } = await mockedAdapterFor(
+      { ...okRule, delayMs: 10_000 },
+      { timeout: 8_000, timeoutErrorMessage: "balance took too long" }
+    );
+
+    const pending = adapter(config).catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    await expect(pending).resolves.toMatchObject({ message: "balance took too long" });
+  });
+
+  it("logs the mocked timeout as an error entry with mocked: true and null status", async () => {
+    const { config, adapter, error } = await mockedAdapterFor(
+      { ...okRule, delayMs: 10_000 },
+      { timeout: 8_000 }
+    );
+
+    const pending = adapter(config).catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(8_000);
+    const err = await pending;
+    await expect(error(err)).rejects.toBe(err);
+
+    const [entry] = devLogStore.getBuffer();
+    expect(entry.mocked).toBe(true);
+    expect(entry.status).toBeNull();
+    expect(entry.error).toBe("timeout of 8000ms exceeded");
+  });
+});

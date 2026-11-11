@@ -18,6 +18,8 @@ const AXIOS_ERR_NETWORK = "ERR_NETWORK";
 const AXIOS_ERR_BAD_REQUEST = "ERR_BAD_REQUEST";
 const AXIOS_ERR_BAD_RESPONSE = "ERR_BAD_RESPONSE";
 const AXIOS_NETWORK_ERROR_MESSAGE = "Network Error";
+const AXIOS_ECONNABORTED = "ECONNABORTED";
+const AXIOS_ETIMEDOUT = "ETIMEDOUT";
 const HTTP_SERVER_ERROR_MIN = 500;
 
 // Cached after first import — module resolution is async but the reference is reused.
@@ -87,6 +89,8 @@ type Timing = { startTime: number; ts: number; url: string };
 
 type AxiosConfigLike = Record<string, unknown>;
 
+type AxiosTransitionalLike = { clarifyTimeoutError?: boolean };
+
 function axiosLikeError(
   message: string,
   code: string,
@@ -104,12 +108,40 @@ function axiosLikeError(
 }
 
 /**
+ * axios enforces `timeout` inside its own adapters, so replacing the adapter drops it.
+ * Mirror the http/xhr adapters' timeout error so a delayed mock behaves like a slow server.
+ */
+function axiosTimeoutError(config: AxiosConfigLike, timeout: number) {
+  const transitional = config.transitional as AxiosTransitionalLike | undefined;
+  const message =
+    typeof config.timeoutErrorMessage === "string" && config.timeoutErrorMessage
+      ? config.timeoutErrorMessage
+      : `timeout of ${timeout}ms exceeded`;
+  return axiosLikeError(
+    message,
+    transitional?.clarifyTimeoutError ? AXIOS_ETIMEDOUT : AXIOS_ECONNABORTED,
+    config
+  );
+}
+
+function resolveTimeout(config: AxiosConfigLike): number {
+  const timeout = parseInt(String(config.timeout ?? 0), 10);
+  return Number.isNaN(timeout) || timeout <= 0 ? 0 : timeout;
+}
+
+/**
  * Returns an axios adapter that answers with the rule's response instead of making
  * the request. Status validation mirrors axios's settle(): validateStatus decides
  * between resolve and reject. transformResponse still runs on `data` afterwards.
+ * A `delayMs` that reaches `config.timeout` rejects with axios's timeout error instead.
  */
 function createMockAdapter(rule: MockRule) {
   return async function mockAdapter(config: AxiosConfigLike) {
+    const timeout = resolveTimeout(config);
+    if (timeout && (rule.delayMs ?? 0) >= timeout) {
+      await delay(timeout);
+      throw axiosTimeoutError(config, timeout);
+    }
     await delay(rule.delayMs);
     if (rule.action.type === "network-error") {
       throw axiosLikeError(AXIOS_NETWORK_ERROR_MESSAGE, AXIOS_ERR_NETWORK, config);
