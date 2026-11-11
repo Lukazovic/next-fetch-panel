@@ -359,7 +359,7 @@ test("a rule created in the panel forces the server-side response for that sessi
   await dialog.getByLabel("Status").fill("200");
   await dialog.getByLabel("Response body").fill('[{"id":1,"title":"Mocked post"}]');
   await dialog.getByRole("button", { name: "Add rule" }).click();
-  await expect(dialog.getByText("GET /posts → 200")).toBeVisible();
+  await expect(dialog.getByRole("listitem", { name: "GET /posts → 200" })).toBeVisible();
 
   // The page renders whatever the server-side fetch returned.
   await qa.reload();

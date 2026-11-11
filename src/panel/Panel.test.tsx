@@ -620,7 +620,7 @@ describe("DevNetworkPanel — mocks", () => {
         action: { type: "response", status: 503, body: '{"error":"unavailable"}' },
       },
     ]);
-    expect(within(dialog).getByText("POST /users → 503")).toBeInTheDocument();
+    expect(within(dialog).getByRole("listitem", { name: "POST /users → 503" })).toBeInTheDocument();
   });
 
   it("creates a network-error rule with a delay", async () => {
@@ -641,17 +641,51 @@ describe("DevNetworkPanel — mocks", () => {
         action: { type: "network-error" },
       },
     ]);
-    expect(within(dialog).getByText("GET /users → network error (+2000ms)")).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("listitem", { name: "GET /users → network error (+2000ms)" })
+    ).toBeInTheDocument();
   });
 
-  it("disables Add rule for a status outside 200–599", async () => {
+  it("explains why a status outside 200–599 can't be added instead of disabling the button", async () => {
     renderPanel({ allowMocks: true });
     openPanel();
     const dialog = await openMockDialogFor(makeEntry());
 
     fireEvent.change(within(dialog).getByLabelText("Status"), { target: { value: "99" } });
+    const addButton = within(dialog).getByRole("button", { name: "Add rule" });
+    expect(addButton).toBeEnabled();
+    await userEvent.click(addButton);
 
-    expect(within(dialog).getByRole("button", { name: "Add rule" })).toBeDisabled();
+    expect(within(dialog).getByText("Use a status between 200 and 599.")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Status")).toHaveAttribute("aria-invalid", "true");
+    expect(readMocksCookie()).toEqual([]);
+  });
+
+  it("asks for the URL to match when it is empty", async () => {
+    renderPanel({ allowMocks: true });
+    openPanel();
+    await userEvent.click(screen.getByRole("button", { name: "Mocks (0)" }));
+    const dialog = await screen.findByRole("dialog");
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Add rule" }));
+
+    expect(within(dialog).getByText("Enter part of the request URL.")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("URL contains")).toHaveAttribute("aria-invalid", "true");
+    expect(readMocksCookie()).toEqual([]);
+  });
+
+  it("clears a field error as soon as the field is edited", async () => {
+    renderPanel({ allowMocks: true });
+    openPanel();
+    await userEvent.click(screen.getByRole("button", { name: "Mocks (0)" }));
+    const dialog = await screen.findByRole("dialog");
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Add rule" }));
+    fireEvent.change(within(dialog).getByLabelText("URL contains"), {
+      target: { value: "/users" },
+    });
+
+    expect(within(dialog).queryByText("Enter part of the request URL.")).toBeNull();
   });
 
   it("shows an error and keeps the cookie unchanged when rules exceed the cookie size", async () => {
@@ -668,7 +702,7 @@ describe("DevNetworkPanel — mocks", () => {
     expect(readMocksCookie()).toEqual([]);
   });
 
-  it("lists rules already in the cookie and removes them", async () => {
+  it("lists rules already in the cookie and removes them with a labelled button", async () => {
     writeMocksCookie([
       {
         id: "r1",
@@ -682,12 +716,49 @@ describe("DevNetworkPanel — mocks", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Mocks (1)" }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("GET /orders → 404")).toBeInTheDocument();
+    expect(within(dialog).getByText("Active mocks (1)")).toBeInTheDocument();
+    expect(within(dialog).getByRole("listitem", { name: "GET /orders → 404" })).toBeInTheDocument();
 
-    await userEvent.click(within(dialog).getByRole("button", { name: "Remove rule" }));
+    const removeButton = within(dialog).getByRole("button", { name: "Remove GET /orders → 404" });
+    expect(removeButton).toHaveTextContent("Remove");
+    await userEvent.click(removeButton);
 
     expect(readMocksCookie()).toEqual([]);
-    expect(within(dialog).getByText("No active rules")).toBeInTheDocument();
+    expect(within(dialog).getByText("No active mocks")).toBeInTheDocument();
+  });
+
+  it("restores a removed rule with Undo", async () => {
+    const rule: MockRule = {
+      id: "r1",
+      method: "GET",
+      urlIncludes: "/orders",
+      action: { type: "response", status: 404 },
+    };
+    writeMocksCookie([rule]);
+    renderPanel({ allowMocks: true });
+    openPanel();
+
+    await userEvent.click(screen.getByRole("button", { name: "Mocks (1)" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Remove GET /orders → 404" }));
+    expect(within(dialog).getByText("Removed GET /orders → 404")).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Undo" }));
+
+    expect(readMocksCookie()).toEqual([rule]);
+    expect(within(dialog).getByRole("listitem", { name: "GET /orders → 404" })).toBeInTheDocument();
+    expect(within(dialog).queryByText("Removed GET /orders → 404")).toBeNull();
+  });
+
+  it("reminds the user to reload the page while rules are active", async () => {
+    renderPanel({ allowMocks: true });
+    openPanel();
+    const dialog = await openMockDialogFor(makeEntry());
+    expect(within(dialog).queryByText(/Reload the page/)).toBeNull();
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Add rule" }));
+
+    expect(within(dialog).getByText(/Reload the page/)).toBeInTheDocument();
   });
 
   it("marks mocked entries in the request list", async () => {
